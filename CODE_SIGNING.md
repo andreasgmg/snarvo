@@ -7,7 +7,7 @@ certificate by [SignPath Foundation](https://signpath.org).
 
 Only the release builds of Snarvo published on this repository's
 [Releases](https://github.com/andreasgmg/snarvo/releases) page: `Snarvo.exe` and `Snarvo.dll`, and
-the installers `Snarvo-setup-x64.exe` and `Snarvo-setup-arm64.exe` (built with Inno Setup from
+the installer `Snarvo-setup-x64.exe` (built with Inno Setup from
 [`installer/Snarvo.iss`](installer/Snarvo.iss), containing the signed app files).
 Third-party components bundled with the app (the Windows App SDK, Win2D and the .NET runtime) are
 already signed by Microsoft and are not re-signed.

@@ -51,3 +51,24 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
       Start-meny, valfri autostart och skrivbordsgenväg, avinstallation under Appar (frågar om
       skärmdumparna ska raderas). Stänger en körande Snarvo med `Snarvo.exe --exit` före uppdatering.
       Byggs i GitHub Actions för x64 och ARM64. Ny appikon som matchar hemsidan.
+
+## Omgång 6 – snyggare, säkrare och fler funktioner
+
+- [x] **29. Bort med ARM64:** bara x64 i bygge, installationsprogram, hemsida och dokument.
+- [ ] **30. Snyggare grafik:** tydligare pil med vit kant, text som etikett med bakgrund, lättare
+      skugga, skarpare sifferbrickor, rundare pratbubblor, en färdig färgpalett som matchar hemsidan.
+- [ ] **31. Säkrare döljning:** nytt verktyg "Täck över" (heltäckande ruta). "Dölj känsligt" täcker
+      över som standard, med val för pixla/oskärpa. Personnummer kontrolleras med kontrollsiffran.
+- [ ] **32. Lugnare verktygsfält:** färre knappar; spara, exportera och storlek under "Dela",
+      Förenkla och Läs text under "Mer".
+- [ ] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.
+- [ ] **34. Klicka på text för att markera:** ett klick (utan att dra) med rektangel, överstrykning
+      eller täck över på ett ord markerar exakt det ordet.
+- [ ] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild
+      per klick, en ring där du klickade och en färdig text ("Klicka på Spara").
+- [ ] **36. Guider:** egen logga och färg, export till webbsida (HTML), alternativtext på bilderna.
+- [ ] **37. Centrala inställningar för IT:** grupprinciper (ADMX) och register under
+      `HKLM\Software\Policies\Snarvo`; låsta inställningar syns som "styrs av din organisation".
+- [ ] **38. winget:** manifest och skript så att Snarvo kan installeras med `winget install`.
+- [ ] **39. Engelsk version:** appen följer Windows språk (svenska, annars engelska).
+- [ ] **40. Automatiska tester:** känsliga uppgifter, privat läge och rensning; körs i GitHub Actions.

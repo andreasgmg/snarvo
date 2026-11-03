@@ -9,7 +9,7 @@ annotera, dölja känslig information och dela bilden.
 
 ## Installera
 
-Ladda ner `Snarvo-setup-x64.exe` (eller `Snarvo-setup-arm64.exe`) från
+Ladda ner `Snarvo-setup-x64.exe` från
 [Releases](https://github.com/andreasgmg/snarvo/releases/latest) och kör det. Installationen gäller
 bara din användare, hamnar i `%LOCALAPPDATA%\Programs\Snarvo` och kräver ingen
 administratörsbehörighet. Snarvo hamnar i Start-menyn och kan avinstalleras under

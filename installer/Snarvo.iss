@@ -7,7 +7,7 @@
 ;
 ;   ISCC /DAppVersion=1.0.0 /DPlatform=x64 /DSourceDir=..\publish installer\Snarvo.iss
 ;
-; SourceDir is the output of dotnet publish. Platform is x64 or ARM64.
+; SourceDir is the output of dotnet publish. Platform is x64.
 
 #ifndef AppVersion
   #define AppVersion "1.0.0"
@@ -43,13 +43,8 @@ DisableProgramGroupPage=yes
 DisableReadyPage=yes
 UsedUserAreasWarning=no
 
-#if Platform == "ARM64"
-ArchitecturesAllowed=arm64
-ArchitecturesInstallIn64BitMode=arm64
-#else
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-#endif
 MinVersion=10.0.17763
 
 OutputDir={#OutputDir}
