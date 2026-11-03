@@ -104,7 +104,7 @@
           <li><strong>Ingen nätverkstrafik</strong><span>Programmet har ingen kod för att skicka något någonstans. Ingen statistik, ingen inloggning.</span></li>
           <li><strong>Privat läge</strong><span>Skärmdumpar finns bara medan du arbetar med dem och raderas när fönstret stängs.</span></li>
           <li><strong>Automatisk rensning</strong><span>Låt gamla skärmdumpar raderas efter 1, 7 eller 30 dagar.</span></li>
-          <li><strong>Ingen administratörsbehörighet</strong><span>Ingen installation. Snarvo körs med dina vanliga rättigheter.</span></li>
+          <li><strong>Ingen administratörsbehörighet</strong><span>Snarvo installeras bara för dig och körs med dina vanliga rättigheter. Det finns också som zip-fil utan installation.</span></li>
           <li><strong>Textigenkänning i Windows</strong><span>Texten i bilden läses av Windows inbyggda funktion, direkt på datorn.</span></li>
           <li><strong>Öppen källkod</strong><span>All kod går att läsa och granska. Licensen är EUPL-1.2, EU:s egen licens för öppen källkod.</span></li>
         </ul>
@@ -116,18 +116,25 @@
   <section id="ladda-ner" class="wrap download">
     <h2>Ladda ner</h2>
     <p class="intro">
-      Packa upp zip-filen var du vill och starta <code>Snarvo.exe</code>. Den lägger sig i systemfältet,
-      nere till höger. Välj ”Starta med Windows” i menyn om du vill att den alltid ska vara igång.
+      Kör installationsprogrammet. Det tar några sekunder, kräver ingen administratörsbehörighet och
+      lägger Snarvo i Start-menyn. Sedan ligger Snarvo i systemfältet, nere till höger.
+      Du avinstallerar det som andra program, under Inställningar&nbsp;›&nbsp;Appar.
     </p>
     <div class="platforms">
-      <a class="button" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-x64.zip">
+      <a class="button" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-setup-x64.exe">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Windows (vanlig dator)
+        Ladda ner för Windows
       </a>
-      <a class="button secondary" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-arm64.zip">Windows på ARM</a>
+      <a class="button secondary" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-setup-arm64.exe">Windows på ARM</a>
     </div>
+    <p class="meta">
+      Vill du hellre slippa installera? Det finns som zip-fil för
+      <a href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-x64.zip">vanliga datorer</a> och
+      <a href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-arm64.zip">ARM</a>.
+      Packa upp den var du vill och starta <code>Snarvo.exe</code>.
+    </p>
     <p class="warning">
-      Första gången kan Windows visa ”Windows skyddade datorn”, eftersom Snarvo är nytt och ännu inte signerat.
+      Windows kan visa ”Windows skyddade datorn”, eftersom Snarvo är nytt och ännu inte signerat.
       Klicka på <em>Mer information</em> och sedan <em>Kör ändå</em>.
     </p>
     <p class="meta">

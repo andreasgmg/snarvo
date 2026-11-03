@@ -44,3 +44,10 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **26. Kodsignering via SignPath Foundation:** kodsigneringspolicy, integritetspolicy, förberett byggsteg
       och färdig ansökningstext.
 - [x] **27. Publicera:** github.com/andreasgmg/snarvo, hemsida på andreasgmg.github.io/snarvo, release v1.0.0.
+
+## Omgång 5
+
+- [x] **28. Installationsprogram (v1.1.0):** Inno Setup, bara för den egna användaren, utan admin.
+      Start-meny, valfri autostart och skrivbordsgenväg, avinstallation under Appar (frågar om
+      skärmdumparna ska raderas). Stänger en körande Snarvo med `Snarvo.exe --exit` före uppdatering.
+      Byggs i GitHub Actions för x64 och ARM64. Ny appikon som matchar hemsidan.

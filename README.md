@@ -7,6 +7,19 @@ Snipping Tool har inget plugin-API, så Snarvo körs bredvid som en egen app i s
 Snipping Tool tar själva skärmdumpen, och Snarvo fångar upp den via urklippet. Där kan du
 annotera, dölja känslig information och dela bilden.
 
+## Installera
+
+Ladda ner `Snarvo-setup-x64.exe` (eller `Snarvo-setup-arm64.exe`) från
+[Releases](https://github.com/andreasgmg/snarvo/releases/latest) och kör det. Installationen gäller
+bara din användare, hamnar i `%LOCALAPPDATA%\Programs\Snarvo` och kräver ingen
+administratörsbehörighet. Snarvo hamnar i Start-menyn och kan avinstalleras under
+Inställningar › Appar.
+
+Vill du hellre slippa installera finns samma app som zip-fil: packa upp och starta `Snarvo.exe`.
+
+För IT: `Snarvo-setup-x64.exe /VERYSILENT /TASKS="autostart"` installerar utan frågor. Avinstallera
+tyst med `unins000.exe /VERYSILENT` i programmappen.
+
 ## Funktioner
 
 - **Fånga:** `Ctrl+Alt+S` eller klick på ikonen i systemfältet startar Snipping Tool. Resultatet
@@ -102,7 +115,8 @@ dotnet publish Snarvo\Snarvo.csproj -c Release -p:Platform=x64 -o publish
 ```
 
 Paket att dela eller lämna till IT: `powershell -ExecutionPolicy Bypass -File build-release.ps1`.
-Det skapar mappen `dist\` med appen som zip, källkoden som zip, SHA-256-summor och
+Det skapar mappen `dist\` med installationsprogrammet (om [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+finns), appen som zip, källkoden som zip, SHA-256-summor och
 [SAKERHET.md](SAKERHET.md), en beskrivning för IT och informationssäkerhet. Skriptet kräver att
 alla ändringar är committade, så att källkoden stämmer med appen.
 

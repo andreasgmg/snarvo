@@ -1,6 +1,6 @@
 # Builds Snarvo on every push and pull request.
 # Pushing a version tag (git tag v1.0.0 && git push origin v1.0.0) also publishes a GitHub release
-# with ready-to-run zip files and their SHA-256 checksums.
+# with an installer and a zip file per platform, and their SHA-256 checksums.
 #
 # Code signing through SignPath Foundation switches on by itself once the repository has the
 # variable SIGNPATH_ORGANIZATION_ID and the secret SIGNPATH_API_TOKEN (see CODE_SIGNING.md).
@@ -68,20 +68,50 @@ jobs:
           wait-for-completion: true
           output-artifact-directory: out/Snarvo-signed
 
+      # File names are the same in every release, so the website can link to releases/latest/download/.
+      - name: Installationsprogram
+        shell: pwsh
+        run: |
+          $folder = if ($env:SIGNING -eq 'true') { 'out/Snarvo-signed' } else { 'out/Snarvo' }
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc /Qp "/DAppVersion=${{ steps.version.outputs.version }}" "/DPlatform=${{ matrix.platform }}" `
+            "/DSourceDir=$PWD\$folder" "/DOutputDir=$PWD\dist" installer\Snarvo.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup misslyckades.' }
+
+      - name: Ladda upp osignerat installationsprogram
+        if: env.SIGNING == 'true'
+        id: unsigned-setup
+        uses: actions/upload-artifact@v6
+        with:
+          name: Snarvo-setup-${{ matrix.platform }}-osignerad
+          path: dist/Snarvo-setup-*.exe
+
+      - name: Signera installationsprogrammet via SignPath
+        if: env.SIGNING == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: snarvo
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist
+
       - name: Packa zip
         shell: pwsh
         run: |
           $folder = if ($env:SIGNING -eq 'true') { 'out/Snarvo-signed' } else { 'out/Snarvo' }
           Copy-Item README.md, LICENSE, THIRD-PARTY-NOTICES.md, SAKERHET.md $folder
           $platform = '${{ matrix.platform }}'.ToLowerInvariant()
-          New-Item -ItemType Directory dist | Out-Null
-          # The same name in every release, so the website can link to releases/latest/download/.
           Compress-Archive -Path "$folder/*" -DestinationPath "dist/Snarvo-$platform.zip"
 
       - uses: actions/upload-artifact@v6
         with:
-          name: zip-${{ matrix.platform }}
-          path: dist/*.zip
+          name: paket-${{ matrix.platform }}
+          path: dist/*
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -94,14 +124,14 @@ jobs:
 
       - uses: actions/download-artifact@v6
         with:
-          pattern: zip-*
+          pattern: paket-*
           path: dist
           merge-multiple: true
 
       - name: Kontrollsummor
         run: |
           cd dist
-          sha256sum *.zip > SHA256SUMS.txt
+          sha256sum *.exe *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Skapa release

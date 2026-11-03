@@ -95,7 +95,8 @@ public partial class App : Application
         Library.Changed += () => _queue.TryEnqueue(TextIndex.Update);
         TextIndex.Update();
 
-        bool hotkeyOk = _tray.RegisterHotkey(CaptureHotkey, Win32.MOD_CONTROL | Win32.MOD_ALT, 'S');        var commandLine = Environment.GetCommandLineArgs().Skip(1).ToList();
+        bool hotkeyOk = _tray.RegisterHotkey(CaptureHotkey, Win32.MOD_CONTROL | Win32.MOD_ALT, 'S');
+        var commandLine = Environment.GetCommandLineArgs().Skip(1).ToList();
         bool background = commandLine.Contains("--background");
         var files = commandLine.Where(IsOpenableFile).ToList();
 
@@ -124,7 +125,7 @@ public partial class App : Application
 
     /// <summary>
     /// Called on a background thread when someone launches Snarvo a second time:
-    /// open any image files it was given, otherwise show the library.
+    /// quit on --exit, open any image files it was given, otherwise show the library.
     /// </summary>
     public void OnRedirectedActivation(AppActivationArguments activation)
     {
@@ -133,8 +134,13 @@ public partial class App : Application
             : "";
         var files = Regex.Matches(commandLine, "\"([^\"]+)\"|(\\S+)")
             .Select(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)
-            .Where(IsOpenableFile)
             .ToList();
+        if (files.Contains("--exit"))
+        {
+            _queue?.TryEnqueue(() => _ = ExitAsync());
+            return;
+        }
+        files = files.Where(IsOpenableFile).ToList();
         _queue?.TryEnqueue(() =>
         {
             if (files.Count == 0) ShowLibrary();

@@ -1,6 +1,6 @@
 # Snarvo – beskrivning för IT och informationssäkerhet
 
-Version 1.0.0. Det här dokumentet beskriver vad programmet gör, vilka data det hanterar och vilka
+Version 1.1.0. Det här dokumentet beskriver vad programmet gör, vilka data det hanterar och vilka
 behörigheter det använder. Syftet är att underlätta en bedömning innan programmet används i en
 organisation. Källkoden följer med och kan granskas i sin helhet: cirka 7 000 rader C# och XAML, som du
 hittar i `Snarvo\`.
@@ -22,10 +22,10 @@ urklippet och används sedan för att:
 |---|---|
 | Nätverk | **Ingen nätverkskod.** Programmet skickar och hämtar ingenting över nätet. Det finns ingen telemetri och inga uppdateringskontroller. |
 | Behörighet | Körs med användarens egna rättigheter (`asInvoker`) och ber aldrig om administratörsbehörighet. |
-| Installation | Ingen installation. Programmet är en mapp med en exe-fil och skriver inget i systemmappar. |
+| Installation | Installationsprogram som bara installerar för den egna användaren, i `%LOCALAPPDATA%\Programs\Snarvo`. Det ber aldrig om administratörsbehörighet och skriver inget i systemmappar. Samma app finns också som zip-fil utan installation. |
 | Text i bilderna | Textigenkänning (OCR) görs lokalt av Windows (`Windows.Media.Ocr`). Inga bilder lämnar datorn. |
 | Tredjepartskod | Bara två paket, båda från Microsoft: Windows App SDK 1.8 och Win2D 1.3.2. Licenstexterna finns i NuGet-paketen. |
-| Signering | Exe-filen är **inte** kodsignerad. Windows SmartScreen visar därför "Okänd utgivare". |
+| Signering | Exe-filen och installationsprogrammet är **inte** kodsignerade. Windows SmartScreen visar därför "Okänd utgivare". |
 | Kryptering | Sparade skärmdumpar är **inte** krypterade av programmet. Skyddet är Windows-kontot och diskkryptering (BitLocker). |
 
 ## Vad programmet gör på datorn
@@ -47,6 +47,17 @@ bara när just den kombinationen trycks, aldrig något annat som skrivs.
 Programmet skriver bara i registret om användaren själv slår på "Starta med Windows". Då skrivs ett
 värde under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, som bara gäller den egna
 användaren.
+
+Installationsprogrammet skriver dessutom:
+- samma autostartvärde, om rutan "Starta Snarvo när jag loggar in i Windows" är ikryssad
+- avinstallationsuppgifterna under `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall`
+- en genväg i den egna Start-menyn, och på skrivbordet om användaren väljer det
+
+### Installation utan frågor
+`Snarvo-setup-x64.exe /VERYSILENT /TASKS="autostart"` installerar utan dialogrutor. Utelämna
+`/TASKS` för att inte slå på autostart. En körande Snarvo avslutas först (den sparar öppna bilder)
+och startas igen efter uppdateringen. Installationsprogrammet är byggt med Inno Setup, och skriptet
+finns i `installer\Snarvo.iss`.
 
 ### Andra program som startas
 - Skärmklippverktyget, via `ms-screenclip:`
@@ -116,6 +127,12 @@ i `SHA256SUMS.txt`.
 
 ## Avinstallera
 
+**Installerad version:** avinstallera under Inställningar › Appar. Programmet, genvägarna,
+autostarten och `%TEMP%\Snarvo\` tas bort. Därefter får användaren frågan om även skärmdumparna
+och inställningarna i `%LOCALAPPDATA%\Snarvo\` ska raderas. Vid tyst avinstallation
+(`unins000.exe /VERYSILENT`) ligger de kvar.
+
+**Zip-versionen:**
 1. Högerklicka på ikonen i systemfältet. Stäng av "Starta med Windows" om den är påslagen, och välj
    sedan "Avsluta Snarvo".
 2. Radera programmappen.

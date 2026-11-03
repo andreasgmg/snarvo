@@ -1,7 +1,8 @@
 ﻿# Builds the release and the packages for IT in dist\:
+#   Snarvo-<version>-setup-x64.exe – installer (only if Inno Setup 6 is installed)
 #   Snarvo-<version>-x64.zip       – the app (unzip and run Snarvo.exe)
 #   Snarvo-<version>-kallkod.zip   – the source code, exactly as committed in git
-#   SHA256SUMS.txt                   – checksums of both
+#   SHA256SUMS.txt                 – checksums of the files above
 # Run from the repository root: powershell -ExecutionPolicy Bypass -File build-release.ps1
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -27,8 +28,21 @@ $app = Join-Path $dist "Snarvo-$version-x64.zip"
 $source = Join-Path $dist "Snarvo-$version-kallkod.zip"
 Compress-Archive -Path publish\*, SAKERHET.md, README.md, LICENSE, THIRD-PARTY-NOTICES.md -DestinationPath $app
 git archive --format=zip --prefix="Snarvo-$version/" -o $source HEAD
+$files = @($app, $source)
 
-$lines = foreach ($file in $app, $source) {
+$iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($iscc) {
+    & $iscc /Qp "/DAppVersion=$version" /DPlatform=x64 "/DSourceDir=$publish" "/DOutputDir=$dist" installer\Snarvo.iss
+    if ($LASTEXITCODE -ne 0) { throw 'Installationsprogrammet kunde inte byggas.' }
+    $setup = Join-Path $dist "Snarvo-$version-setup-x64.exe"
+    Move-Item (Join-Path $dist 'Snarvo-setup-x64.exe') $setup
+    $files = @($setup) + $files
+} else {
+    Write-Warning 'Inno Setup 6 hittades inte, så inget installationsprogram byggdes (winget install JRSoftware.InnoSetup).'
+}
+
+$lines = foreach ($file in $files) {
     '{0}  {1}' -f (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path $file -Leaf)
 }
 $lines += "", "Byggd från git-commit $commit, $(Get-Date -Format 'yyyy-MM-dd HH:mm')."

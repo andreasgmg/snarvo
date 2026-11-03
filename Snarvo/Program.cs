@@ -15,7 +15,8 @@ public static class Program
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // Only one Snarvo may own the tray icon, hotkey and clipboard listener.
-        // A second launch just asks the running instance to show its library.
+        // A second launch just asks the running instance to show its library,
+        // or to quit when it was started with --exit (the installer does that before updating).
         var key = AppInstance.FindOrRegisterForKey("Snarvo.Main");
         if (!key.IsCurrent)
         {
@@ -23,6 +24,10 @@ public static class Program
             Task.Run(() => key.RedirectActivationToAsync(activation).AsTask()).Wait();
             return 0;
         }
+        if (args.Contains("--exit")) return 0;
+
+        // Lets the installer and uninstaller see that Snarvo is running.
+        using var running = new Mutex(false, "Snarvo.Running");
 
         key.Activated += (_, activation) => App.Instance?.OnRedirectedActivation(activation);
 
