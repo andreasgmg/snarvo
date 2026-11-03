@@ -19,6 +19,9 @@ $publish = Join-Path $PSScriptRoot 'publish'
 if (Get-Process Snarvo -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$publish\*" }) {
     throw 'Snarvo körs från publish-mappen. Avsluta den först (högerklicka på ikonen > Avsluta Snarvo).'
 }
+dotnet test Snarvo.Tests\Snarvo.Tests.csproj -p:Platform=x64 -nologo -v q
+if ($LASTEXITCODE -ne 0) { throw 'Testerna gick inte igenom.' }
+
 # A clean folder, so no files from older builds end up in the zip.
 if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 dotnet publish Snarvo\Snarvo.csproj -c Release -p:Platform=x64 -o publish -nologo -v q

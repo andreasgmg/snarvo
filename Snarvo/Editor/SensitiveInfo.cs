@@ -12,6 +12,9 @@ namespace Snarvo.Editor;
 /// <summary>A piece of recognised text that should not be shared, and where it is in the image.</summary>
 public sealed record SensitiveHit(string Kind, string Text, Rect Bounds);
 
+/// <summary>One recognised line: its words and where each is in the image (image coordinates).</summary>
+public sealed record TextLine(IReadOnlyList<(string Text, Rect Bounds)> Words);
+
 /// <summary>Finds e-mail addresses, phone numbers, passwords, keys etc. in an OCR result.</summary>
 public static partial class SensitiveInfo
 {
@@ -51,17 +54,22 @@ public static partial class SensitiveInfo
     [GeneratedRegex(@"^[A-Za-z0-9_\-]{24,}$")]
     private static partial Regex LongToken();
 
-    /// <summary>An OCR line as one string, with a way back from a range of it to where those words are in the image.</summary>
+    /// <summary>The lines of an OCR result, with the word areas converted to image coordinates.</summary>
+    public static IReadOnlyList<TextLine> Lines(OcrResult result, float scale) =>
+        result.Lines.Select(line => new TextLine(line.Words
+            .Select(w => (w.Text, new Rect(w.BoundingRect.X / scale, w.BoundingRect.Y / scale,
+                w.BoundingRect.Width / scale, w.BoundingRect.Height / scale)))
+            .ToList())).ToList();
+
+    /// <summary>A line as one string, with a way back from a range of it to where those words are in the image.</summary>
     sealed class LineText
     {
-        readonly IReadOnlyList<OcrWord> _words;
+        readonly IReadOnlyList<(string Text, Rect Bounds)> _words;
         readonly int[] _starts;
-        readonly float _scale;
 
-        public LineText(OcrLine line, float scale)
+        public LineText(TextLine line)
         {
             _words = line.Words;
-            _scale = scale;
             _starts = new int[_words.Count];
             var text = new StringBuilder();
             for (int i = 0; i < _words.Count; i++)
@@ -86,22 +94,28 @@ public static partial class SensitiveInfo
             {
                 int start = _starts[i], end = start + _words[i].Text.Length;
                 if (end <= index || start >= index + length) continue;
-                var r = _words[i].BoundingRect;
-                bounds = bounds is { } b ? Geo.Union(b, r) : r;
+                var r = _words[i].Bounds;
+                bounds = bounds is { } b ? Union(b, r) : r;
             }
-            return bounds is { } found
-                ? new Rect(found.X / _scale, found.Y / _scale, found.Width / _scale, found.Height / _scale)
-                : null;
+            return bounds;
         }
     }
 
-    public static IReadOnlyList<SensitiveHit> Find(OcrResult result, float scale)
+    static Rect Union(Rect a, Rect b)
+    {
+        double left = Math.Min(a.Left, b.Left), top = Math.Min(a.Top, b.Top);
+        return new Rect(left, top, Math.Max(a.Right, b.Right) - left, Math.Max(a.Bottom, b.Bottom) - top);
+    }
+
+    public static IReadOnlyList<SensitiveHit> Find(OcrResult result, float scale) => Find(Lines(result, scale));
+
+    public static IReadOnlyList<SensitiveHit> Find(IReadOnlyList<TextLine> lines)
     {
         var hits = new List<SensitiveHit>();
-        foreach (var ocrLine in result.Lines)
+        foreach (var textLine in lines)
         {
-            if (ocrLine.Words.Count == 0) continue;
-            var line = new LineText(ocrLine, scale);
+            if (textLine.Words.Count == 0) continue;
+            var line = new LineText(textLine);
             var lineText = line.Text;
 
             void Add(string kind, int index, int length)
@@ -142,15 +156,18 @@ public static partial class SensitiveInfo
     /// Every place where one of the terms (a word, a name …) occurs. Matching ignores case and
     /// accents, since OCR often drops the dots and rings of å, ä and ö.
     /// </summary>
-    public static IReadOnlyList<SensitiveHit> FindTerms(OcrResult result, float scale, IReadOnlyList<string> terms)
+    public static IReadOnlyList<SensitiveHit> FindTerms(OcrResult result, float scale, IReadOnlyList<string> terms) =>
+        FindTerms(Lines(result, scale), terms);
+
+    public static IReadOnlyList<SensitiveHit> FindTerms(IReadOnlyList<TextLine> lines, IReadOnlyList<string> terms)
     {
         var compare = CultureInfo.InvariantCulture.CompareInfo;
         const CompareOptions Loose = CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreWidth;
         var hits = new List<SensitiveHit>();
-        foreach (var ocrLine in result.Lines)
+        foreach (var textLine in lines)
         {
-            if (ocrLine.Words.Count == 0) continue;
-            var line = new LineText(ocrLine, scale);
+            if (textLine.Words.Count == 0) continue;
+            var line = new LineText(textLine);
             foreach (var term in terms)
             {
                 int from = 0;
@@ -174,7 +191,7 @@ public static partial class SensitiveInfo
         {
             int i = merged.FindIndex(m => Overlaps(m.Bounds, hit.Bounds));
             if (i < 0) merged.Add(hit);
-            else merged[i] = merged[i] with { Bounds = Geo.Union(merged[i].Bounds, hit.Bounds) };
+            else merged[i] = merged[i] with { Bounds = Union(merged[i].Bounds, hit.Bounds) };
         }
         return merged;
     }
