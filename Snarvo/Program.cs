@@ -27,6 +27,24 @@ public static class Program
             }).Wait();
             return 0;
         }
+
+        // Developer aid: Snarvo.exe --export-test <logo.png> <out-without-extension>
+        // writes every library capture as a guide in all three formats, with a logo and colour.
+        if (args.Length == 3 && args[0] == "--export-test")
+        {
+            Task.Run(async () =>
+            {
+                var steps = Services.Library.List().Reverse()
+                    .Select((id, i) => new Services.GuideStep(Services.Library.OutputPath(id), i == 0 ? "Klicka i fältet ”Förnamn”." : "Klicka på knappen ”Spara medlem”."))
+                    .ToList();
+                var guide = new Services.Guide("Så lägger du in en ny medlem", "Gäller alla som har behörighet till medlemsregistret.",
+                    steps, new Services.GuideLook("C8432C", Path.GetFullPath(args[1]), "Föreningen Exempel"));
+                await Services.GuideExport.SavePdfAsync(guide, args[2] + ".pdf");
+                await Services.GuideExport.SaveDocxAsync(guide, args[2] + ".docx");
+                await Services.GuideExport.SaveHtmlAsync(guide, args[2] + ".html");
+            }).Wait();
+            return 0;
+        }
 #endif
 
         // Only one Snarvo may own the tray icon, hotkey and clipboard listener.

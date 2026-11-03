@@ -20,7 +20,12 @@ public static class Policy
     public const string OnlySnippingToolName = "OnlySnippingTool";
     public const string HideMethodName = "HideMethod";
     public const string StepRecorderName = "AllowStepRecorder";
+    // Text values (REG_SZ) for an organisation's guides.
+    public const string GuideLogoName = "GuideLogo";
+    public const string GuideAccentName = "GuideAccent";
+    public const string GuideOrganizationName = "GuideOrganization";
 
+    static readonly Dictionary<string, string> Texts = new(StringComparer.OrdinalIgnoreCase);
     static readonly Dictionary<string, int> Values = Read();
 
     static Dictionary<string, int> Read()
@@ -34,7 +39,11 @@ public static class Policy
                 using var key = hive.OpenSubKey(KeyPath);
                 if (key is null) continue;
                 foreach (var name in key.GetValueNames())
-                    if (key.GetValue(name) is int value) values[name] = value;
+                {
+                    var value = key.GetValue(name);
+                    if (value is int number) values[name] = number;
+                    else if (value is string text && text.Length > 0) Texts[name] = Environment.ExpandEnvironmentVariables(text);
+                }
             }
             catch (Exception ex)
             {
@@ -44,9 +53,9 @@ public static class Policy
         return values;
     }
 
-    public static bool IsLocked(string name) => Values.ContainsKey(name);
+    public static bool IsLocked(string name) => Values.ContainsKey(name) || Texts.ContainsKey(name);
 
-    public static bool AnyLocked => Values.Count > 0;
+    public static bool AnyLocked => Values.Count > 0 || Texts.Count > 0;
 
     /// <summary>Step recording is allowed unless the organisation has turned it off.</summary>
     public static bool StepRecorderAllowed => !Values.TryGetValue(StepRecorderName, out var v) || v != 0;
@@ -59,6 +68,9 @@ public static class Policy
         if (Values.TryGetValue(OnlySnippingToolName, out var only)) settings.OnlySnippingTool = only != 0;
         if (Values.TryGetValue(HideMethodName, out var method) && Enum.IsDefined(typeof(HideMethod), method))
             settings.HideMethod = (HideMethod)method;
+        if (Texts.TryGetValue(GuideLogoName, out var logo)) settings.GuideLogo = logo;
+        if (Texts.TryGetValue(GuideAccentName, out var accent)) settings.GuideAccent = accent.TrimStart('#');
+        if (Texts.TryGetValue(GuideOrganizationName, out var organization)) settings.GuideOrganization = organization;
     }
 
     public const string LockedText = "Styrs av din organisation";

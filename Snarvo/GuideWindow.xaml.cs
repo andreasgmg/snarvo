@@ -92,7 +92,7 @@ public sealed partial class GuideWindow : Window
     void UpdateSteps()
     {
         for (int i = 0; i < _steps.Count; i++) _steps[i].Number = i + 1;
-        PdfButton.IsEnabled = WordButton.IsEnabled = _steps.Count > 0 && !_saving;
+        PdfButton.IsEnabled = WordButton.IsEnabled = HtmlButton.IsEnabled = _steps.Count > 0 && !_saving;
         if (_steps.Count == 0) StatusText.Text = "Guiden har inga steg. Markera skärmdumpar i biblioteket och välj Guide.";
     }
 
@@ -128,10 +128,13 @@ public sealed partial class GuideWindow : Window
         if (ItemOf(sender) is { } step) _ = App.Instance?.OpenEditorAsync(step.Image.Id);
     }
 
-    void SavePdf_Click(object sender, RoutedEventArgs e) => _ = SaveAsync(word: false);
-    void SaveWord_Click(object sender, RoutedEventArgs e) => _ = SaveAsync(word: true);
+    enum Format { Pdf, Word, Html }
 
-    async Task SaveAsync(bool word)
+    void SavePdf_Click(object sender, RoutedEventArgs e) => _ = SaveAsync(Format.Pdf);
+    void SaveWord_Click(object sender, RoutedEventArgs e) => _ = SaveAsync(Format.Word);
+    void SaveHtml_Click(object sender, RoutedEventArgs e) => _ = SaveAsync(Format.Html);
+
+    async Task SaveAsync(Format format)
     {
         if (_saving || _steps.Count == 0) return;
 
@@ -141,7 +144,13 @@ public sealed partial class GuideWindow : Window
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
             SuggestedFileName = name.Length > 0 ? name : "Guide",
         };
-        picker.FileTypeChoices.Add(word ? "Word-dokument" : "PDF-dokument", new List<string> { word ? ".docx" : ".pdf" });
+        var (kind, extension) = format switch
+        {
+            Format.Word => ("Word-dokument", ".docx"),
+            Format.Html => ("Webbsida", ".html"),
+            _ => ("PDF-dokument", ".pdf"),
+        };
+        picker.FileTypeChoices.Add(kind, new List<string> { extension });
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHelper.Handle(this));
         var file = await picker.PickSaveFileAsync();
         if (file is null) return;
@@ -151,10 +160,17 @@ public sealed partial class GuideWindow : Window
         StatusText.Text = "Skapar dokumentet …";
         try
         {
+            var settings = App.Instance?.Settings;
+            var look = settings is null ? GuideLook.Default
+                : new GuideLook(settings.GuideAccent, settings.GuideLogo, settings.GuideOrganization);
             var guide = new Guide(GuideTitle, IntroBox.Text,
-                _steps.Select(s => new GuideStep(s.Image.ImagePath, s.Text)).ToList());
-            if (word) await GuideExport.SaveDocxAsync(guide, file.Path);
-            else await GuideExport.SavePdfAsync(guide, file.Path);
+                _steps.Select(s => new GuideStep(s.Image.ImagePath, s.Text)).ToList(), look);
+            switch (format)
+            {
+                case Format.Word: await GuideExport.SaveDocxAsync(guide, file.Path); break;
+                case Format.Html: await GuideExport.SaveHtmlAsync(guide, file.Path); break;
+                default: await GuideExport.SavePdfAsync(guide, file.Path); break;
+            }
 
             _savedPath = file.Path;
             _savedSnapshot = Snapshot();
@@ -171,6 +187,84 @@ public sealed partial class GuideWindow : Window
             _saving = false;
             UpdateSteps();
         }
+    }
+
+    // ───────────────────────────── look ─────────────────────────────
+
+    static readonly (string Hex, string Name)[] Accents =
+    [
+        ("0078D4", "Blå"), ("1C7ED6", "Ljusblå"), ("2F9E44", "Grön"), ("C8432C", "Röd"),
+        ("F08C00", "Orange"), ("7048E8", "Lila"), ("212529", "Svart"),
+    ];
+
+    bool _lookLoading;
+
+    void LookFlyout_Opening(object sender, object e)
+    {
+        if (App.Instance?.Settings is not { } settings) return;
+        _lookLoading = true;
+        var logo = settings.GuideLogo;
+        LogoText.Text = string.IsNullOrEmpty(logo) ? "Ingen logga. Den visas uppe till höger i guiden." : Path.GetFileName(logo);
+        OrganizationBox.Text = settings.GuideOrganization ?? "";
+
+        AccentSwatches.Children.Clear();
+        foreach (var (hex, label) in Accents)
+        {
+            var color = Microsoft.UI.ColorHelper.FromArgb(255, Convert.ToByte(hex[..2], 16), Convert.ToByte(hex[2..4], 16), Convert.ToByte(hex[4..], 16));
+            bool selected = string.Equals(settings.GuideAccent, hex, StringComparison.OrdinalIgnoreCase);
+            var button = new Button
+            {
+                Width = 34, Height = 34, Padding = new Thickness(0),
+                BorderThickness = new Thickness(selected ? 2 : 1),
+                Content = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(11), Background = new SolidColorBrush(color) },
+                IsEnabled = !Policy.IsLocked(Policy.GuideAccentName),
+            };
+            if (selected) button.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+            ToolTipService.SetToolTip(button, label);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, label);
+            button.Click += (_, _) =>
+            {
+                settings.GuideAccent = hex;
+                App.Instance?.SaveSettingsSoon();
+                LookFlyout_Opening(sender, e);
+            };
+            AccentSwatches.Children.Add(button);
+        }
+
+        ChooseLogoButton.IsEnabled = RemoveLogoButton.IsEnabled = !Policy.IsLocked(Policy.GuideLogoName);
+        RemoveLogoButton.IsEnabled &= !string.IsNullOrEmpty(logo);
+        OrganizationBox.IsEnabled = !Policy.IsLocked(Policy.GuideOrganizationName);
+        bool locked = Policy.IsLocked(Policy.GuideLogoName) || Policy.IsLocked(Policy.GuideAccentName) || Policy.IsLocked(Policy.GuideOrganizationName);
+        LookPolicyText.Visibility = locked ? Visibility.Visible : Visibility.Collapsed;
+        LookPolicyText.Text = $"Delar av utseendet: {Policy.LockedText.ToLowerInvariant()}.";
+        _lookLoading = false;
+    }
+
+    async void ChooseLogo_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Instance?.Settings is not { } settings) return;
+        var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.PicturesLibrary };
+        foreach (var type in new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" }) picker.FileTypeFilter.Add(type);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHelper.Handle(this));
+        if (await picker.PickSingleFileAsync() is not { } file) return;
+        settings.GuideLogo = file.Path;
+        App.Instance.SaveSettingsSoon();
+        LookFlyout_Opening(sender, e);
+    }
+
+    void RemoveLogo_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Instance?.Settings is not { } settings) return;
+        settings.GuideLogo = null;
+        App.Instance.SaveSettingsSoon();
+        LookFlyout_Opening(sender, e);
+    }
+
+    void OrganizationBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_lookLoading || App.Instance?.Settings is not { } settings) return;
+        settings.GuideOrganization = OrganizationBox.Text.Trim().Length == 0 ? null : OrganizationBox.Text.Trim();
+        App.Instance.SaveSettingsSoon();
     }
 
     void Open_Click(object sender, RoutedEventArgs e)

@@ -114,6 +114,11 @@ public sealed class AppSettings
     /// <summary>Step recording hides personal data in each picture straight away.</summary>
     public bool StepRecorderHideSensitive { get; set; } = true;
 
+    /// <summary>Guides: heading colour (RRGGBB), logo file and organisation name.</summary>
+    public string GuideAccent { get; set; } = "0078D4";
+    public string? GuideLogo { get; set; }
+    public string? GuideOrganization { get; set; }
+
     /// <summary>Light or dark windows; follows Windows unless chosen.</summary>
     public AppTheme Theme { get; set; }
 
