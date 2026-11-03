@@ -41,16 +41,16 @@ public sealed partial class EditorWindow : Window
             "Klicka för att markera, dra för att flytta. Delete tar bort, piltangenterna knuffar. Dubbelklicka på text för att ändra den."),
         new(Tool.Arrow, "\uE72A", "Pil", VirtualKey.A, "Dra för att rita en pil. Håll Shift för raka vinklar."),
         new(Tool.Line, "\uE738", "Linje", VirtualKey.L, "Dra för att rita en linje. Håll Shift för raka vinklar."),
-        new(Tool.Rectangle, "\uE739", "Rektangel", VirtualKey.R, "Dra för att rita en rektangel. Håll Shift för en kvadrat."),
+        new(Tool.Rectangle, "\uE739", "Rektangel", VirtualKey.R, "Dra för att rita en rektangel, eller klicka på ett ord för att ringa in det (Shift+klick: hela raden)."),
         new(Tool.Ellipse, "\uEA3A", "Ellips", VirtualKey.E, "Dra för att rita en ellips. Håll Shift för en cirkel."),
-        new(Tool.Highlight, "\uE7E6", "Överstrykning", VirtualKey.H, "Dra över text för att markera den som med en överstrykningspenna."),
+        new(Tool.Highlight, "\uE7E6", "Överstrykning", VirtualKey.H, "Klicka på ett ord för att stryka över det (Shift+klick: hela raden), eller dra över ett område."),
         new(Tool.Pen, "\uE70F", "Penna", VirtualKey.P,
             "Rita på fri hand. Håll musen still en stund i slutet så blir en cirkel, rektangel eller linje perfekt."),
         new(Tool.Text, "\uE8D2", "Text", VirtualKey.T, "Klicka där texten ska stå och skriv. Klicka utanför, Esc eller Ctrl+Enter när du är klar."),
         new(Tool.Callout, "\uE8BD", "Pratbubbla", VirtualKey.C, "Dra från det du vill peka på till där bubblan ska ligga, och skriv sedan."),
         new(Tool.Step, "", "Numrerade steg", VirtualKey.N, "Klicka för att placera steg 1, 2, 3 … Numren uppdateras automatiskt om du tar bort ett."),
         new(Tool.Redact, "\uE72E", "Täck över", VirtualKey.D,
-            "Dra över känslig information för att täcka den helt. Säkrast – inget av det som stod där går att återskapa."),
+            "Dra över känslig information, eller klicka på ett ord, för att täcka det helt. Säkrast – inget av det som stod där går att återskapa."),
         new(Tool.Blur, "\uED1A", "Oskärpa", VirtualKey.B, "Dra över känslig information för att göra den suddig."),
         new(Tool.Pixelate, "\uE80A", "Pixla", VirtualKey.X, "Dra över känslig information för att pixla den."),
         new(Tool.Magnify, "\uE71E", "Förstoringsglas", VirtualKey.M, "Dra för att placera ett förstoringsglas som visar området under det i dubbel storlek."),
@@ -782,6 +782,9 @@ public sealed partial class EditorWindow : Window
                 _doc.Annotations.Remove(shape);
                 Select(null);
                 _changed = false;
+                // With the marking and hiding tools a click on a word marks exactly that word.
+                if (shape.GetTool() is Tool.Rectangle or Tool.Highlight or Tool.Redact or Tool.Blur or Tool.Pixelate)
+                    _ = MarkTextAtAsync(shape.GetTool(), shape.Start, wholeLine: IsKeyDown(VirtualKey.Shift));
                 break;
 
             case Drag.Region:
@@ -1831,6 +1834,70 @@ public sealed partial class EditorWindow : Window
         ShowStatus($"Dolde {added.Count} uppgifter: {summary}. Ctrl+Z ångrar, eller markera och ta bort enskilda.");
     }
 
+    // OCR of the current capture, reused for clicks on text until the capture is cropped or cut.
+    RecognizedText? _wordsOcr;
+    CanvasBitmap? _wordsOcrBase;
+
+    /// <summary>Marks (or hides) the word under a click, or its whole line with Shift.</summary>
+    async Task MarkTextAtAsync(Tool tool, Vector2 point, bool wholeLine)
+    {
+        try
+        {
+            if (_wordsOcr is null || !ReferenceEquals(_wordsOcrBase, _doc.Base))
+            {
+                var bitmap = _doc.Base;
+                var recognized = await TextRecognition.RecognizeAsync(_doc.Size, ds => ds.DrawImage(bitmap));
+                if (recognized is null) return;
+                _wordsOcr = recognized;
+                _wordsOcrBase = bitmap;
+            }
+            if (!ReferenceEquals(_wordsOcrBase, _doc.Base)) return;
+
+            float scale = _wordsOcr.Scale;
+            Rect? found = null;
+            foreach (var line in _wordsOcr.Result.Lines)
+            {
+                Rect? lineBounds = null;
+                bool hit = false;
+                foreach (var word in line.Words)
+                {
+                    var r = word.BoundingRect;
+                    var box = new Rect(r.X / scale, r.Y / scale, r.Width / scale, r.Height / scale);
+                    lineBounds = lineBounds is { } lb ? Geo.Union(lb, box) : box;
+                    if (Geo.Inflate(box, 3).Contains(point))
+                    {
+                        hit = true;
+                        if (!wholeLine) found = box;
+                    }
+                }
+                if (hit && wholeLine) found = lineBounds;
+                if (found is not null) break;
+            }
+            if (found is not { } text)
+            {
+                ShowStatus("Ingen text där du klickade. Dra för att markera ett område.");
+                return;
+            }
+
+            // A little air around the letters; more for the hiding tools, which must cover descenders too.
+            bool hiding = tool is Tool.Redact or Tool.Blur or Tool.Pixelate;
+            double padX = hiding ? 4 : 3, padY = Math.Max(2, text.Height * (hiding ? 0.25 : 0.18));
+            var area = Geo.Intersect(new Rect(text.X - padX, text.Y - padY, text.Width + 2 * padX, text.Height + 2 * padY),
+                new Rect(0, 0, _doc.Size.X, _doc.Size.Y));
+            var before = _doc.Capture();
+            var mark = (BoxAnnotation)CreateAnnotation(tool, area.TopLeft());
+            mark.End = new Vector2((float)area.Right, (float)area.Bottom);
+            if (tool == Tool.Pixelate) mark.Thickness = Math.Max(mark.Thickness, (float)area.Height / 2.5f);
+            _doc.Annotations.Add(mark);
+            MarkChanged(before);
+            Select(mark);
+        }
+        catch (Exception ex)
+        {
+            App.Log(ex);
+        }
+    }
+
     // Remembered for the session, so the same customer name is quick to hide in the next capture too.
     static string _lastHiddenTerms = "";
 
@@ -1909,40 +1976,15 @@ public sealed partial class EditorWindow : Window
     List<SensitiveHit> HideHits(IEnumerable<SensitiveHit> hits)
     {
         var method = App.Instance?.Settings.HideMethod ?? HideMethod.Cover;
-        var image = new Rect(0, 0, _doc.Size.X, _doc.Size.Y);
-        var covered = _doc.Annotations.Where(a => a is BlurAnnotation or RedactAnnotation).Select(b => b.GetBounds(_device)).ToList();
-        var added = new List<SensitiveHit>();
-        DocState? before = null;
-        foreach (var hit in hits)
+        var created = AutoHide.Create(hits, method, _doc.Size, AutoHide.Covered(_doc.Annotations), _styles);
+        if (created.Count > 0)
         {
-            // OCR boxes hug the letters tightly and often miss descenders; pad generously, most of all vertically.
-            var b = hit.Bounds;
-            // A solid box hides everything under it, so it needs less margin than pixels or blur.
-            double padX = 4, padY = method == HideMethod.Cover ? Math.Max(3, b.Height * 0.22) : Math.Max(4, b.Height * 0.35);
-            var area = Geo.Intersect(new Rect(b.X - padX, b.Y - padY, b.Width + 2 * padX, b.Height + 2 * padY), image);
-            if (area.Width < 2 || area.Height < 2) continue;
-            // Running it twice should not stack a second pixelation on the same spot.
-            if (covered.Any(c => Geo.Inflate(c, 2).Contains(area.TopLeft()) && Geo.Inflate(c, 2).Contains(new Vector2((float)area.Right, (float)area.Bottom))))
-                continue;
-
-            before ??= _doc.Capture();
-            var tool = method switch { HideMethod.Pixelate => Tool.Pixelate, HideMethod.Blur => Tool.Blur, _ => Tool.Redact };
-            var hide = (BoxAnnotation)CreateAnnotation(tool, area.TopLeft());
-            hide.End = new Vector2((float)area.Right, (float)area.Bottom);
-            // Blocks and blur must be coarse relative to the text height, or short strings stay readable.
-            if (tool == Tool.Pixelate) hide.Thickness = Math.Max(hide.Thickness, (float)area.Height / 2.5f);
-            if (tool == Tool.Blur) hide.Thickness = Math.Max(hide.Thickness, (float)area.Height / 2f);
-            _doc.Annotations.Add(hide);
-            covered.Add(area);
-            added.Add(hit);
-        }
-
-        if (before is not null)
-        {
+            var before = _doc.Capture();
+            foreach (var (_, box) in created) _doc.Annotations.Add(box);
             MarkChanged(before);
             Select(null);
         }
-        return added;
+        return created.Select(c => c.Hit).ToList();
     }
 
     /// <summary>Replaces the text in the capture with plain bars, so the annotations stand out (Snagit's "Simplify").</summary>

@@ -62,7 +62,7 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **32. Lugnare verktygsfält:** färre knappar; spara, exportera och storlek under "Dela",
       Förenkla och Läs text under "Mer".
 - [x] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.
-- [ ] **34. Klicka på text för att markera:** ett klick (utan att dra) med rektangel, överstrykning
+- [x] **34. Klicka på text för att markera:** ett klick (utan att dra) med rektangel, överstrykning
       eller täck över på ett ord markerar exakt det ordet.
 - [ ] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild
       per klick, en ring där du klickade och en färdig text ("Klicka på Spara").
