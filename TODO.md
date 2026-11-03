@@ -64,7 +64,7 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.
 - [x] **34. Klicka på text för att markera:** ett klick (utan att dra) med rektangel, överstrykning
       eller täck över på ett ord markerar exakt det ordet.
-- [ ] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild
+- [x] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild
       per klick, en ring där du klickade och en färdig text ("Klicka på Spara").
 - [ ] **36. Guider:** egen logga och färg, export till webbsida (HTML), alternativtext på bilderna.
 - [ ] **37. Centrala inställningar för IT:** grupprinciper (ADMX) och register under

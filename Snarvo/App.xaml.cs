@@ -101,6 +101,15 @@ public partial class App : Application
         bool background = commandLine.Contains("--background");
         var files = commandLine.Where(IsOpenableFile).ToList();
 
+#if DEBUG
+        // Developer aid: Snarvo.exe --record-test bild.png – records two steps from a picture
+        // instead of the screen (no mouse hook), then opens the guide.
+        if (commandLine.Count >= 2 && commandLine[0] == "--record-test")
+        {
+            _ = RecordTestAsync(commandLine[1]);
+            return;
+        }
+#endif
         if (files.Count > 0)
         {
             foreach (var file in files) _ = OpenFileAsync(file);
@@ -161,6 +170,9 @@ public partial class App : Application
     IReadOnlyList<TrayMenuItem> BuildTrayMenu() =>
     [
         new($"Ny skärmdump\t{HotkeyText}", StartCapture),
+        _recorder is null
+            ? new("Spela in steg för en guide …", StartStepRecording, Enabled: Policy.StepRecorderAllowed)
+            : new($"Stoppa inspelningen ({_recorder.Count} steg)", () => _ = FinishRecordingAsync(cancel: false)),
         new("Öppna bibliotek", ShowLibrary),
         new("Gör GIF av en inspelning …", () =>
         {
@@ -177,6 +189,89 @@ public partial class App : Application
     ];
 
     SettingsWindow? _settingsWindow;
+    StepRecorder? _recorder;
+    RecorderBar? _recorderBar;
+
+    public bool IsRecordingSteps => _recorder is not null;
+
+    /// <summary>Starts recording a guide: every click becomes a step, until the bar's Klar.</summary>
+    public void StartStepRecording()
+    {
+        if (_recorder is not null)
+        {
+            if (_recorderBar is { } bar) WindowHelper.BringToFront(bar);
+            return;
+        }
+        if (!Policy.StepRecorderAllowed)
+        {
+            _tray?.ShowBalloon("Stegregistrering är avstängd", "Din organisation har stängt av stegregistrering i Snarvo.");
+            return;
+        }
+        var recorder = new StepRecorder(Settings.PrivateMode, Settings.StepRecorderHideSensitive, Settings.HideMethod, ToolStyles);
+        if (!recorder.Start())
+        {
+            _tray?.ShowBalloon("Snarvo", "Kunde inte starta stegregistreringen.");
+            return;
+        }
+        _recorder = recorder;
+        _recorderBar = new RecorderBar(recorder);
+        _recorderBar.Finish += () => _ = FinishRecordingAsync(cancel: false);
+        _recorderBar.Cancel += () => _ = FinishRecordingAsync(cancel: true);
+        _recorderBar.Activate();
+        // The library would only be in the way of what is being shown.
+        if (_library?.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter) presenter.Minimize();
+    }
+
+#if DEBUG
+    async Task RecordTestAsync(string path)
+    {
+        var bytes = await File.ReadAllBytesAsync(path);
+        using var stream = new MemoryStream(bytes).AsRandomAccessStream();
+        using var bitmap = await Microsoft.Graphics.Canvas.CanvasBitmap.LoadAsync(Microsoft.Graphics.Canvas.CanvasDevice.GetSharedDevice(), stream, 96);
+        var pixels = bitmap.GetPixelBytes();
+        int w = (int)bitmap.SizeInPixels.Width, h = (int)bitmap.SizeInPixels.Height;
+
+        var recorder = new StepRecorder(Settings.PrivateMode, Settings.StepRecorderHideSensitive, Settings.HideMethod, ToolStyles);
+        _recorder = recorder;
+        _recorderBar = new RecorderBar(recorder);
+        _recorderBar.Finish += () => _ = FinishRecordingAsync(cancel: false);
+        _recorderBar.Cancel += () => _ = FinishRecordingAsync(cancel: true);
+        _recorderBar.Activate();
+        recorder.AddForTest(pixels, w, h, new System.Numerics.Vector2(w * 0.25f, h * 0.3f), "Klicka i fältet \u201DFörnamn\u201D.");
+        await Task.Delay(400);
+        recorder.AddForTest(pixels, w, h, new System.Numerics.Vector2(w * 0.3f, h * 0.86f), "Klicka på knappen \u201DSpara medlem\u201D.",
+            new Native.ScreenCapture.RECT { Left = (int)(w * 0.22f), Top = (int)(h * 0.826f), Right = (int)(w * 0.38f), Bottom = (int)(h * 0.888f) });
+    }
+#endif
+
+    async Task FinishRecordingAsync(bool cancel)
+    {
+        if (_recorder is not { } recorder) return;
+        _recorder = null;
+        _recorderBar?.Close();
+        _recorderBar = null;
+        try
+        {
+            if (cancel)
+            {
+                await recorder.CancelAsync();
+                return;
+            }
+            var steps = await recorder.StopAsync();
+            if (steps.Count == 0)
+            {
+                _tray?.ShowBalloon("Inga steg spelades in", "Klicka i det program du vill visa medan inspelningen pågår.");
+                return;
+            }
+            var guide = new GuideWindow(steps.Select(s => s.Id), steps.ToDictionary(s => s.Id, s => s.Text),
+                recorded: true, deleteOnClose: Settings.PrivateMode);
+            WindowHelper.BringToFront(guide);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+    }
 
     public void ShowSettings(bool about = false)
     {
@@ -338,6 +433,8 @@ public partial class App : Application
         }
     }
 
+    public bool IsOpenInEditor(string id) => _editors.ContainsKey(id);
+
     public async Task OpenEditorAsync(string id)
     {
         try
@@ -400,6 +497,13 @@ public partial class App : Application
 
     async Task ExitAsync()
     {
+        // Steps recorded so far stay in the library (or are removed with the other private captures).
+        if (_recorder is { } recorder)
+        {
+            _recorder = null;
+            _recorderBar?.Close();
+            await recorder.StopAsync();
+        }
         foreach (var editor in _editors.Values.ToList())
         {
             await editor.SaveIfDirtyAsync();

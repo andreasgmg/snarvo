@@ -111,6 +111,9 @@ public sealed class AppSettings
     /// <summary>Solid boxes by default: pixelated and blurred text can sometimes be reconstructed.</summary>
     public HideMethod HideMethod { get; set; } = HideMethod.Cover;
 
+    /// <summary>Step recording hides personal data in each picture straight away.</summary>
+    public bool StepRecorderHideSensitive { get; set; } = true;
+
     /// <summary>Light or dark windows; follows Windows unless chosen.</summary>
     public AppTheme Theme { get; set; }
 

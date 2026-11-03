@@ -157,7 +157,7 @@ public static class Library
         }
 
         using (bitmap)
-            return await AddAsync(bitmap, temporary);
+            return await AddBitmapAsync(bitmap, temporary);
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ public static class Library
                     at += (sideBySide ? w : h) + Gap;
                 }
             }
-            return await AddAsync(target);
+            return await AddBitmapAsync(target);
         }
         finally
         {
@@ -206,8 +206,9 @@ public static class Library
         }
     }
 
-    static async Task<string> AddAsync(CanvasBitmap bitmap, bool temporary = false)
+    public static async Task<string> AddBitmapAsync(CanvasBitmap bitmap, bool temporary = false)
     {
+        Directory.CreateDirectory(Root);
         var id = NewId();
         // Marked before the image exists, so the library and text index never pick it up.
         if (temporary) MarkTemporary(id);

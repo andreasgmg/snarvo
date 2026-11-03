@@ -120,6 +120,15 @@
 
                 <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
                     <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Dölj känsligt när steg spelas in" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="RecorderHideText" Text="Personnummer, e-post och liknande döljs i varje inspelat steg direkt. Kontrollera ändå bilderna innan guiden delas." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="RecorderHideSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Dölj känsligt när steg spelas in" Toggled="RecorderHideSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="Här sparas dina skärmdumpar" Style="{StaticResource CardTitle}" />
                         <TextBlock x:Name="DataFolderText" Style="{StaticResource CardText}" IsTextSelectionEnabled="True" />
                     </StackPanel>

@@ -72,6 +72,7 @@ public sealed partial class LibraryWindow : Window
                          "eller använd Win+Shift+S som vanligt – den hamnar här automatiskt.";
 
         Items.ItemsSource = _items;
+        RecordButton.IsEnabled = Policy.StepRecorderAllowed;
         BuildRetentionMenu();
         Library.Changed += OnLibraryChanged;
         TextIndex.Indexed += OnTextIndexed;
@@ -365,6 +366,8 @@ public sealed partial class LibraryWindow : Window
     }
 
     void Settings_Click(object sender, RoutedEventArgs e) => App.Instance?.ShowSettings();
+
+    void Record_Click(object sender, RoutedEventArgs e) => App.Instance?.StartStepRecording();
 
     void Folder_Click(object sender, RoutedEventArgs e)
     {

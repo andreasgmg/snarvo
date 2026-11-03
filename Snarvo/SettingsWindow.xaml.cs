@@ -43,6 +43,12 @@ public sealed partial class SettingsWindow : Window
         OnlySnippingToolSwitch.IsOn = _settings.OnlySnippingTool;
         HotkeyText.Text = App.HotkeyText;
         PrivateModeSwitch.IsOn = _settings.PrivateMode;
+        RecorderHideSwitch.IsOn = _settings.StepRecorderHideSensitive;
+        if (!Policy.StepRecorderAllowed)
+        {
+            RecorderHideSwitch.IsEnabled = false;
+            RecorderHideText.Text = $"Stegregistrering är avstängd. {Policy.LockedText}.";
+        }
         HideMethodBox.SelectedIndex = (int)_settings.HideMethod;
         ThemeBox.SelectedIndex = (int)_settings.Theme;
         LabelSwitch.IsOn = App.Instance?.ToolStyles.TryGetValue(Tool.Text, out var text) == true && text.Label;
@@ -103,6 +109,13 @@ public sealed partial class SettingsWindow : Window
     {
         if (_loading) return;
         _settings.AutoOpenEditor = AutoOpenSwitch.IsOn;
+        Save();
+    }
+
+    void RecorderHideSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.StepRecorderHideSensitive = RecorderHideSwitch.IsOn;
         Save();
     }
 

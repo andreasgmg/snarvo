@@ -23,6 +23,13 @@
                         <TextBlock Text="Ny skärmdump" />
                     </StackPanel>
                 </Button>
+                <Button x:Name="RecordButton" Click="Record_Click" AutomationProperties.Name="Spela in steg"
+                        ToolTipService.ToolTip="Gör en guide medan du arbetar: varje klick blir ett steg med en bild och ett textförslag.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE7C8;" FontSize="16" />
+                        <TextBlock Text="Spela in steg" />
+                    </StackPanel>
+                </Button>
                 <DropDownButton x:Name="CombineButton" IsEnabled="False" AutomationProperties.Name="Kombinera"
                                 ToolTipService.ToolTip="Sätt ihop markerade skärmdumpar till en bild. Markera flera med Ctrl+klick.">
                     <StackPanel Orientation="Horizontal" Spacing="8">

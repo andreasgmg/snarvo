@@ -46,23 +46,38 @@ public sealed partial class GuideWindow : Window
     string _savedSnapshot;
     bool _saving, _closeConfirmed;
 
-    public GuideWindow(IEnumerable<string> ids)
+    /// <param name="texts">Suggested text per capture, e.g. from step recording.</param>
+    /// <param name="recorded">The steps were just recorded: nothing of them is saved anywhere yet.</param>
+    /// <param name="deleteOnClose">Private mode: the captures only exist for this guide.</param>
+    public GuideWindow(IEnumerable<string> ids, IReadOnlyDictionary<string, string>? texts = null,
+        bool recorded = false, bool deleteOnClose = false)
     {
         InitializeComponent();
         Title = "Snarvo – Steg-för-steg-guide";
         WindowHelper.Prepare(this);
 
         // Oldest first: the order the steps were captured in.
-        foreach (var id in ids.Order(StringComparer.Ordinal))
+        var idList = ids.Order(StringComparer.Ordinal).ToList();
+        foreach (var id in idList)
         {
-            var step = new GuideStepItem(new LibraryItem(id));
+            var step = new GuideStepItem(new LibraryItem(id)) { Text = texts?.GetValueOrDefault(id) ?? "" };
             _steps.Add(step);
             _ = step.Image.LoadThumbnailAsync();
         }
         _steps.CollectionChanged += (_, _) => UpdateSteps();
         StepsList.ItemsSource = _steps;
         UpdateSteps();
-        _savedSnapshot = Snapshot();
+        // A recorded guide is unsaved work from the start, so closing it asks first.
+        _savedSnapshot = recorded ? "" : Snapshot();
+        if (recorded)
+            StatusText.Text = $"{idList.Count} steg inspelade. Texterna är förslag – skriv om dem som du vill." +
+                              (deleteOnClose ? " Privat läge: bilderna raderas när guiden stängs." : "");
+        if (deleteOnClose)
+            Closed += (_, _) =>
+            {
+                foreach (var id in idList)
+                    if (App.Instance?.IsOpenInEditor(id) != true) Library.Delete(id);
+            };
 
         Library.Changed += OnLibraryChanged;
         Closed += (_, _) => Library.Changed -= OnLibraryChanged;
@@ -173,7 +188,7 @@ public sealed partial class GuideWindow : Window
         .Concat(_steps.Select(s => s.Image.Id + "\u0002" + s.Text)));
 
     bool HasUnsavedText =>
-        Snapshot() != _savedSnapshot &&
+        Snapshot() != _savedSnapshot && _steps.Count > 0 &&
         (TitleBox.Text.Trim().Length > 0 || IntroBox.Text.Trim().Length > 0 || _steps.Any(s => s.Text.Trim().Length > 0));
 
     async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
