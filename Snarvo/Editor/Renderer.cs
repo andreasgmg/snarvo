@@ -15,7 +15,7 @@ namespace Snarvo.Editor;
 public static class Renderer
 {
     const float ShadowMargin = 36;
-    static readonly Color AnnotationShadow = Color.FromArgb(110, 0, 0, 0);
+    static readonly Color AnnotationShadow = Color.FromArgb(80, 0, 0, 0);
     static readonly Color FrameShadow = Color.FromArgb(140, 0, 0, 0);
 
     /// <summary>Where the image's top-left corner ends up once border and shadow are added.</summary>
@@ -42,8 +42,8 @@ public static class Renderer
             using var layer = new CanvasCommandList(rc);
             using (var lds = layer.CreateDrawingSession())
                 annotation.Draw(lds, ctx);
-            using var shadow = new ShadowEffect { Source = layer, BlurAmount = 2.5f, ShadowColor = AnnotationShadow };
-            ds.DrawImage(shadow, 1.5f, 2f);
+            using var shadow = new ShadowEffect { Source = layer, BlurAmount = 3f, ShadowColor = AnnotationShadow };
+            ds.DrawImage(shadow, 0, 1.5f);
             ds.DrawImage(layer);
         }
     }

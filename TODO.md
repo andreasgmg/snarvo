@@ -55,10 +55,10 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 ## Omgång 6 – snyggare, säkrare och fler funktioner
 
 - [x] **29. Bort med ARM64:** bara x64 i bygge, installationsprogram, hemsida och dokument.
-- [ ] **30. Snyggare grafik:** tydligare pil med vit kant, text som etikett med bakgrund, lättare
+- [x] **30. Snyggare grafik:** tydligare pil med vit kant, text som etikett med bakgrund, lättare
       skugga, skarpare sifferbrickor, rundare pratbubblor, en färdig färgpalett som matchar hemsidan.
-- [ ] **31. Säkrare döljning:** nytt verktyg "Täck över" (heltäckande ruta). "Dölj känsligt" täcker
-      över som standard, med val för pixla/oskärpa. Personnummer kontrolleras med kontrollsiffran.
+- [x] **31. Säkrare döljning:** nytt verktyg "Täck över" (heltäckande ruta). "Dölj känsligt" täcker
+      över som standard, med val för pixla/oskärpa. Personnummer måste ha ett rimligt datum (inte kontrollsiffra – en felläst siffra får inte lämna ett riktigt nummer synligt). E-post hittas även när OCR tappar punkten.
 - [ ] **32. Lugnare verktygsfält:** färre knappar; spara, exportera och storlek under "Dela",
       Förenkla och Läs text under "Mer".
 - [ ] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.

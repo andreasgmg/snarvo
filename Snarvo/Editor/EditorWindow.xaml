@@ -22,7 +22,7 @@
                         <Flyout>
                             <StackPanel Spacing="10">
                                 <VariableSizedWrapGrid x:Name="Swatches" Orientation="Horizontal"
-                                                       MaximumRowsOrColumns="6" ItemWidth="40" ItemHeight="40" />
+                                                       MaximumRowsOrColumns="5" ItemWidth="40" ItemHeight="40" />
                                 <Button Click="Eyedropper_Click" HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon Glyph="&#xEF3C;" FontSize="16" />
@@ -57,6 +57,14 @@
                     <Slider x:Name="FontSlider" Width="130" Minimum="10" Maximum="96" StepFrequency="1"
                             VerticalAlignment="Center" ValueChanged="FontSlider_ValueChanged" />
                 </StackPanel>
+
+                <ToggleButton x:Name="LabelToggle" Click="LabelToggle_Click" AutomationProperties.Name="Bakgrund bakom texten"
+                              ToolTipService.ToolTip="Visa texten som en etikett med färgad bakgrund – lättare att läsa på röriga bilder">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8D3;" FontSize="16" />
+                        <TextBlock Text="Bakgrund" />
+                    </StackPanel>
+                </ToggleButton>
             </StackPanel>
 
             <StackPanel x:Name="ActionBar" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -99,13 +107,13 @@
                 </DropDownButton>
 
                 <SplitButton Click="HideSensitive_SplitClick" AutomationProperties.Name="Dölj känsligt"
-                             ToolTipService.ToolTip="Hitta och pixla e-post, telefonnummer, personnummer, kortnummer, lösenord och nycklar automatiskt (Ctrl+H). Pilen: dölj ett visst ord eller namn.">
+                             ToolTipService.ToolTip="Hitta och dölj e-post, telefonnummer, personnummer, kortnummer, lösenord och nycklar automatiskt (Ctrl+H). Pilen: dölj ett visst ord eller namn, eller välj hur det döljs.">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE72E;" FontSize="16" />
                         <TextBlock Text="Dölj känsligt" />
                     </StackPanel>
                     <SplitButton.Flyout>
-                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft" Opening="HideMenu_Opening">
                             <MenuFlyoutItem Text="Dölj känslig information" Click="HideSensitive_Click">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72E;" /></MenuFlyoutItem.Icon>
                                 <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+H</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
@@ -114,6 +122,13 @@
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE721;" /></MenuFlyoutItem.Icon>
                                 <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+Shift+H</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
                             </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <RadioMenuFlyoutItem x:Name="HideCoverItem" Text="Täck över (säkrast)" Tag="Cover" GroupName="HideMethod" Click="HideMethod_Click"
+                                                 ToolTipService.ToolTip="Heltäckande rutor. Inget av texten under går att återskapa." />
+                            <RadioMenuFlyoutItem x:Name="HidePixelateItem" Text="Pixla" Tag="Pixelate" GroupName="HideMethod" Click="HideMethod_Click"
+                                                 ToolTipService.ToolTip="Pixlad text kan i vissa fall återskapas med specialverktyg." />
+                            <RadioMenuFlyoutItem x:Name="HideBlurItem" Text="Oskärpa" Tag="Blur" GroupName="HideMethod" Click="HideMethod_Click"
+                                                 ToolTipService.ToolTip="Suddig text kan i vissa fall återskapas med specialverktyg." />
                         </MenuFlyout>
                     </SplitButton.Flyout>
                 </SplitButton>

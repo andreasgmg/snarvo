@@ -22,6 +22,8 @@ public enum Tool
     Crop, CutOut,
     // Not on the tool rail: created by "Förenkla". Last, so stored tool numbers stay the same.
     Simplify,
+    // New tools go after the existing ones for the same reason.
+    Redact,
 }
 
 /// <summary>Everything an annotation may need while drawing besides its own data.</summary>
@@ -68,6 +70,7 @@ public interface ITextAnnotation
 [JsonDerivedType(typeof(MagnifyAnnotation), "magnify")]
 [JsonDerivedType(typeof(SpotlightAnnotation), "spotlight")]
 [JsonDerivedType(typeof(BlockAnnotation), "block")]
+[JsonDerivedType(typeof(RedactAnnotation), "redact")]
 public abstract class Annotation
 {
     public Color Color { get; set; } = Colors.Red;
@@ -156,28 +159,33 @@ public sealed class ArrowAnnotation : ShapeAnnotation
         float length = d.Length();
         if (length < 1) return;
 
-        // A tapered shaft that widens into the head, like Snagit's default arrow.
+        // A shaft that widens towards a large, swept-back head. The thin outline in a contrasting
+        // colour keeps the arrow sharp on both light and dark parts of a screenshot.
         var u = d / length;
         var n = new Vector2(-u.Y, u.X);
-        float headLength = Math.Min(Math.Max(Thickness * 3.2f, 12f), length * 0.8f);
-        float headHalf = headLength * 0.55f;
-        float tailHalf = Thickness * 0.25f;
-        float shaftHalf = Thickness * 0.5f;
-        var headBase = End - u * headLength;
+        float headLength = Math.Min(Math.Max(Thickness * 4.2f, 16f), length * 0.6f);
+        float headHalf = headLength * 0.62f;
+        float tailHalf = Math.Max(1f, Thickness * 0.22f);
+        float shaftHalf = Thickness * 0.55f;
+        var barbBase = End - u * headLength;
+        var notch = barbBase + u * (headLength * 0.22f);
 
         var path = new CanvasPathBuilder(ds);
         path.BeginFigure(Start + n * tailHalf);
-        path.AddLine(headBase + n * shaftHalf);
-        path.AddLine(headBase + n * headHalf);
+        path.AddLine(notch + n * shaftHalf);
+        path.AddLine(barbBase + n * headHalf);
         path.AddLine(End);
-        path.AddLine(headBase - n * headHalf);
-        path.AddLine(headBase - n * shaftHalf);
+        path.AddLine(barbBase - n * headHalf);
+        path.AddLine(notch - n * shaftHalf);
         path.AddLine(Start - n * tailHalf);
         path.EndFigure(CanvasFigureLoop.Closed);
         using var geometry = CanvasGeometry.CreatePath(path);
+        ds.DrawGeometry(geometry, Geo.WithAlpha(Geo.Contrast(Color), 235), Outline(Thickness), Strokes.Round);
         ds.FillGeometry(geometry, Color);
-        ds.FillCircle(Start, tailHalf, Color);
     }
+
+    /// <summary>Width of the contrasting edge around arrows and shapes; half of it shows outside.</summary>
+    internal static float Outline(float thickness) => Math.Clamp(thickness * 0.5f, 2f, 5f);
 
     public override bool HitTest(ICanvasResourceCreator rc, Vector2 p, float tolerance) =>
         Geo.DistanceToSegment(p, Start, End) <= Thickness * 1.5f + tolerance;
@@ -187,8 +195,13 @@ public sealed class LineAnnotation : ShapeAnnotation
 {
     public override Tool GetTool() => Tool.Line;
 
-    public override void Draw(CanvasDrawingSession ds, RenderContext ctx) =>
+    public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
+    {
+        ds.DrawLine(Start, End, Edge(Color), Thickness + ArrowAnnotation.Outline(Thickness), Strokes.Round);
         ds.DrawLine(Start, End, Color, Thickness, Strokes.Round);
+    }
+
+    internal static Color Edge(Color c) => Geo.WithAlpha(Geo.Contrast(c), 235);
 
     public override bool HitTest(ICanvasResourceCreator rc, Vector2 p, float tolerance) =>
         Geo.DistanceToSegment(p, Start, End) <= Thickness / 2 + tolerance;
@@ -198,8 +211,11 @@ public sealed class RectangleAnnotation : BoxAnnotation
 {
     public override Tool GetTool() => Tool.Rectangle;
 
-    public override void Draw(CanvasDrawingSession ds, RenderContext ctx) =>
+    public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
+    {
+        ds.DrawRectangle(Box, LineAnnotation.Edge(Color), Thickness + ArrowAnnotation.Outline(Thickness), Strokes.Round);
         ds.DrawRectangle(Box, Color, Thickness, Strokes.Round);
+    }
 
     public override bool HitTest(ICanvasResourceCreator rc, Vector2 p, float tolerance)
     {
@@ -217,7 +233,9 @@ public sealed class EllipseAnnotation : BoxAnnotation
     public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
     {
         var r = Box;
-        ds.DrawEllipse(r.Center(), (float)r.Width / 2, (float)r.Height / 2, Color, Thickness, Strokes.Round);
+        float rx = (float)r.Width / 2, ry = (float)r.Height / 2;
+        ds.DrawEllipse(r.Center(), rx, ry, LineAnnotation.Edge(Color), Thickness + ArrowAnnotation.Outline(Thickness), Strokes.Round);
+        ds.DrawEllipse(r.Center(), rx, ry, Color, Thickness, Strokes.Round);
     }
 
     public override bool HitTest(ICanvasResourceCreator rc, Vector2 p, float tolerance)
@@ -322,10 +340,14 @@ public sealed class TextAnnotation : Annotation, ITextAnnotation
     public Vector2 Position { get; set; }
     public string Text { get; set; } = "";
 
+    /// <summary>Drawn as a label: contrasting text on a rounded box in the annotation colour.</summary>
+    public bool Label { get; set; }
+
     [JsonIgnore] public bool HideText { get; set; }
-    [JsonIgnore] public Color TextColor => Color;
+    [JsonIgnore] public Color TextColor => Label ? Geo.Contrast(Color) : Color;
 
     public override Tool GetTool() => Tool.Text;
+    public override bool CastsShadow() => Label;
 
     CanvasTextLayout CreateLayout(ICanvasResourceCreator rc)
     {
@@ -333,21 +355,38 @@ public sealed class TextAnnotation : Annotation, ITextAnnotation
         return new CanvasTextLayout(rc, Text.Length == 0 ? " " : Text, format, 0, 0);
     }
 
+    Rect TextBox(CanvasTextLayout layout)
+    {
+        var b = layout.LayoutBounds;
+        return new Rect(Position.X + b.X, Position.Y + b.Y, Math.Max(b.Width, FontSize * 0.6), b.Height);
+    }
+
+    Rect LabelBox(Rect text) => new(text.X - FontSize * 0.45, text.Y - FontSize * 0.12,
+        text.Width + FontSize * 0.9, text.Height + FontSize * 0.24);
+
     public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
     {
-        if (HideText || Text.Length == 0) return;
+        if (Text.Length == 0 && !Label) return;
         using var layout = CreateLayout(ds);
+        if (Label)
+        {
+            float radius = FontSize * 0.32f;
+            ds.FillRoundedRectangle(LabelBox(TextBox(layout)), radius, radius, Color);
+            if (!HideText) ds.DrawTextLayout(layout, Position, TextColor);
+            return;
+        }
+        if (HideText) return;
         using var geometry = CanvasGeometry.CreateText(layout);
         // A contrasting outline keeps the text readable on any background.
-        ds.DrawGeometry(geometry, Position, Geo.Contrast(Color), Math.Max(2f, FontSize / 7f), Strokes.Round);
+        ds.DrawGeometry(geometry, Position, Geo.Contrast(Color), Math.Max(2f, FontSize / 6f), Strokes.Round);
         ds.FillGeometry(geometry, Position, Color);
     }
 
     public override Rect GetBounds(ICanvasResourceCreator rc)
     {
         using var layout = CreateLayout(rc);
-        var b = layout.LayoutBounds;
-        return new Rect(Position.X + b.X, Position.Y + b.Y, Math.Max(b.Width, FontSize * 0.6), b.Height);
+        var box = TextBox(layout);
+        return Label ? LabelBox(box) : box;
     }
 
     public Vector2 GetTextOrigin(ICanvasResourceCreator rc) => Position;
@@ -387,7 +426,7 @@ public sealed class CalloutAnnotation : Annotation, ITextAnnotation
         var (layout, box) = Measure(ds);
         using (layout)
         {
-            float radius = (float)Math.Min(10, box.Height / 2);
+            float radius = (float)Math.Min(FontSize * 0.7, box.Height / 2);
             using var body = CanvasGeometry.CreateRoundedRectangle(ds, box, radius, radius);
             if (box.Contains(Tip))
             {
@@ -395,12 +434,15 @@ public sealed class CalloutAnnotation : Annotation, ITextAnnotation
             }
             else
             {
+                // A tail that starts wide inside the bubble and narrows to a rounded point.
                 var dir = Vector2.Normalize(Tip - Center);
                 var n = new Vector2(-dir.Y, dir.X);
-                float baseHalf = (float)Math.Min(box.Width, box.Height) * 0.2f;
+                float baseHalf = (float)Math.Min(box.Width, box.Height) * 0.3f;
+                float tipHalf = Math.Max(1f, FontSize * 0.06f);
                 var path = new CanvasPathBuilder(ds);
                 path.BeginFigure(Center + n * baseHalf);
-                path.AddLine(Tip);
+                path.AddLine(Tip + n * tipHalf);
+                path.AddArc(Tip - n * tipHalf, tipHalf, tipHalf, 0, CanvasSweepDirection.Clockwise, CanvasArcSize.Small);
                 path.AddLine(Center - n * baseHalf);
                 path.EndFigure(CanvasFigureLoop.Closed);
                 using var tail = CanvasGeometry.CreatePath(path);
@@ -455,12 +497,13 @@ public sealed class StepAnnotation : Annotation
     public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
     {
         float r = Radius;
-        ds.FillCircle(Center, r, Color);
-        ds.DrawCircle(Center, r, Colors.White, Math.Max(1.5f, r * 0.1f));
+        float ring = Math.Max(1.5f, r * 0.12f);
+        ds.FillCircle(Center, r + ring / 2, Geo.Contrast(Color));
+        ds.FillCircle(Center, r - ring / 2, Color);
         using var format = new CanvasTextFormat
         {
             FontFamily = Fonts.Family,
-            FontSize = r * 1.1f,
+            FontSize = r * 1.15f,
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
             VerticalAlignment = CanvasVerticalAlignment.Center,
@@ -544,6 +587,37 @@ public sealed class BlurAnnotation : BoxAnnotation
             using var clip = new CropEffect { Source = blur, SourceRectangle = r, BorderMode = EffectBorderMode.Hard };
             ds.DrawImage(clip);
         }
+    }
+}
+
+/// <summary>
+/// Covers content with a solid box. Unlike blurring or pixelation nothing of what is underneath
+/// survives, so it cannot be reconstructed from the image.
+/// </summary>
+public sealed class RedactAnnotation : BoxAnnotation
+{
+    public override Tool GetTool() => Tool.Redact;
+    public override bool CastsShadow() => false;
+
+    public override void Draw(CanvasDrawingSession ds, RenderContext ctx)
+    {
+        var r = Box;
+        if (r.Width < 1 || r.Height < 1) return;
+        var solid = Geo.WithAlpha(Color, 255);
+        float radius = (float)Math.Min(4, Math.Min(r.Width, r.Height) / 4);
+        ds.FillRoundedRectangle(r, radius, radius, solid);
+
+        // A small lock tells the reader the content was hidden on purpose.
+        float size = (float)Math.Min(r.Height * 0.55, 22);
+        if (size < 10 || r.Width < size * 2.2) return;
+        using var format = new CanvasTextFormat
+        {
+            FontFamily = "Segoe MDL2 Assets",
+            FontSize = size,
+            HorizontalAlignment = CanvasHorizontalAlignment.Center,
+            VerticalAlignment = CanvasVerticalAlignment.Center,
+        };
+        ds.DrawText("\uE72E", r, Geo.WithAlpha(Geo.Contrast(solid), 140), format);
     }
 }
 

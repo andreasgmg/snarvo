@@ -7,6 +7,9 @@ using Snarvo.Editor;
 
 namespace Snarvo.Services;
 
+/// <summary>How "Dölj känsligt" and "Dölj ord eller namn" hide what they find.</summary>
+public enum HideMethod { Cover, Pixelate, Blur }
+
 public sealed class AppSettings
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -102,6 +105,9 @@ public sealed class AppSettings
 
     /// <summary>Size of copied, exported and dragged images.</summary>
     public ExportSize ExportSize { get; set; }
+
+    /// <summary>Solid boxes by default: pixelated and blurred text can sometimes be reconstructed.</summary>
+    public HideMethod HideMethod { get; set; } = HideMethod.Cover;
 
     /// <summary>Preset whose frame effects new captures start with, if any.</summary>
     public string? DefaultPreset { get; set; }

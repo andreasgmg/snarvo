@@ -49,6 +49,8 @@ public sealed partial class EditorWindow : Window
         new(Tool.Text, "\uE8D2", "Text", VirtualKey.T, "Klicka där texten ska stå och skriv. Klicka utanför, Esc eller Ctrl+Enter när du är klar."),
         new(Tool.Callout, "\uE8BD", "Pratbubbla", VirtualKey.C, "Dra från det du vill peka på till där bubblan ska ligga, och skriv sedan."),
         new(Tool.Step, "", "Numrerade steg", VirtualKey.N, "Klicka för att placera steg 1, 2, 3 … Numren uppdateras automatiskt om du tar bort ett."),
+        new(Tool.Redact, "\uE72E", "Täck över", VirtualKey.D,
+            "Dra över känslig information för att täcka den helt. Säkrast – inget av det som stod där går att återskapa."),
         new(Tool.Blur, "\uED1A", "Oskärpa", VirtualKey.B, "Dra över känslig information för att göra den suddig."),
         new(Tool.Pixelate, "\uE80A", "Pixla", VirtualKey.X, "Dra över känslig information för att pixla den."),
         new(Tool.Magnify, "\uE71E", "Förstoringsglas", VirtualKey.M, "Dra för att placera ett förstoringsglas som visar området under det i dubbel storlek."),
@@ -60,19 +62,9 @@ public sealed partial class EditorWindow : Window
 
     static readonly Color Accent = Color.FromArgb(255, 0, 120, 212);
 
-    static readonly Color[] Palette =
-    [
-        Color.FromArgb(255, 0xE5, 0x39, 0x35), Color.FromArgb(255, 0xFB, 0x8C, 0x00), Color.FromArgb(255, 0xFF, 0xEB, 0x3B),
-        Color.FromArgb(255, 0x43, 0xA0, 0x47), Color.FromArgb(255, 0x00, 0x89, 0x7B), Color.FromArgb(255, 0x1E, 0x88, 0xE5),
-        Color.FromArgb(255, 0x8E, 0x24, 0xAA), Color.FromArgb(255, 0xD8, 0x1B, 0x60), Color.FromArgb(255, 0x6D, 0x4C, 0x41),
-        Color.FromArgb(255, 0x21, 0x21, 0x21), Color.FromArgb(255, 0x75, 0x75, 0x75), Color.FromArgb(255, 0xFF, 0xFF, 0xFF),
-    ];
+    static readonly Color[] Palette = ToolStyle.Palette;
 
-    static readonly Color[] BorderPalette =
-    [
-        Color.FromArgb(255, 0xFF, 0xFF, 0xFF), Color.FromArgb(255, 0x21, 0x21, 0x21), Color.FromArgb(255, 0x9E, 0x9E, 0x9E),
-        Accent, Color.FromArgb(255, 0xE5, 0x39, 0x35),
-    ];
+    static readonly Color[] BorderPalette = [ToolStyle.White, ToolStyle.Ink, ToolStyle.Grey, ToolStyle.Blue, ToolStyle.Red];
 
     enum Drag { None, Create, Move, Handle, Region, Pen, Snapped }
 
@@ -313,6 +305,7 @@ public sealed partial class EditorWindow : Window
             or Tool.Pen or Tool.Magnify or Tool.Blur or Tool.Pixelate);
         ThicknessLabel.Text = kind switch { Tool.Blur => "Styrka", Tool.Pixelate => "Blockstorlek", _ => "Tjocklek" };
         FontPanel.Visibility = ToVisibility(hasStyle && kind is Tool.Text or Tool.Callout or Tool.Step);
+        LabelToggle.Visibility = ToVisibility(hasStyle && kind == Tool.Text);
         FontLabel.Text = kind == Tool.Step ? "Storlek" : "Textstorlek";
         AutoTrimButton.Visibility = ToVisibility(_selected is null && kind == Tool.Crop);
         if (style is null) return;
@@ -323,10 +316,23 @@ public sealed partial class EditorWindow : Window
         Picker.Color = color;
         ThicknessSlider.Value = _selected?.Thickness ?? style.Thickness;
         FontSlider.Value = _selected?.FontSize ?? style.FontSize;
+        LabelToggle.IsChecked = _selected is TextAnnotation selectedText ? selectedText.Label : style.Label;
         _suppressStyleEvents = false;
     }
 
     static Visibility ToVisibility(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+
+    void LabelToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_suppressStyleEvents) return;
+        bool label = LabelToggle.IsChecked == true;
+        if (_styles.TryGetValue(Tool.Text, out var style))
+        {
+            style.Label = label;
+            App.Instance?.SaveSettingsSoon();
+        }
+        if (_selected is TextAnnotation text && text.Label != label) ChangeSelected(a => ((TextAnnotation)a).Label = label);
+    }
 
     void ChangeColor(Color color)
     {
@@ -861,6 +867,7 @@ public sealed partial class EditorWindow : Window
             Tool.Step => new StepAnnotation { Center = p },
             Tool.Blur => new BlurAnnotation { Start = p, End = p },
             Tool.Pixelate => new BlurAnnotation { Start = p, End = p, Pixelate = true },
+            Tool.Redact => new RedactAnnotation { Start = p, End = p },
             Tool.Magnify => new MagnifyAnnotation { Start = p, End = p },
             Tool.Spotlight => new SpotlightAnnotation { Start = p, End = p },
             _ => throw new ArgumentOutOfRangeException(nameof(tool)),
@@ -869,6 +876,7 @@ public sealed partial class EditorWindow : Window
         annotation.Color = style.Color;
         annotation.Thickness = style.Thickness;
         annotation.FontSize = style.FontSize;
+        if (annotation is TextAnnotation text) text.Label = style.Label;
         return annotation;
     }
 
@@ -1402,6 +1410,20 @@ public sealed partial class EditorWindow : Window
     void HideSensitive_Click(object sender, RoutedEventArgs e) => _ = HideSensitiveAsync();
     void HideSensitive_SplitClick(SplitButton sender, SplitButtonClickEventArgs e) => _ = HideSensitiveAsync();
     void HideWords_Click(object sender, RoutedEventArgs e) => _ = HideWordsAsync();
+
+    void HideMethod_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Instance is not { } app || sender is not RadioMenuFlyoutItem { Tag: string tag }) return;
+        app.Settings.HideMethod = Enum.Parse<HideMethod>(tag);
+        app.SaveSettingsSoon();
+    }
+
+    void HideMenu_Opening(object sender, object e)
+    {
+        var method = (App.Instance?.Settings.HideMethod ?? HideMethod.Cover).ToString();
+        foreach (var item in new[] { HideCoverItem, HidePixelateItem, HideBlurItem })
+            item.IsChecked = (string)item.Tag == method;
+    }
     void Simplify_Click(object sender, RoutedEventArgs e) => _ = SimplifyAsync();
     void Library_Click(object sender, RoutedEventArgs e) => App.Instance?.ShowLibrary();
 
@@ -1774,7 +1796,7 @@ public sealed partial class EditorWindow : Window
         }
     }
 
-    /// <summary>Finds e-mail addresses, phone numbers, passwords, keys etc. with OCR and pixelates them.</summary>
+    /// <summary>Finds e-mail addresses, phone numbers, passwords, keys etc. with OCR and hides them.</summary>
     async Task HideSensitiveAsync()
     {
         CommitTextEdit();
@@ -1797,7 +1819,7 @@ public sealed partial class EditorWindow : Window
             return;
         }
 
-        var added = PixelateHits(hits);
+        var added = HideHits(hits);
         if (added.Count == 0)
         {
             ShowStatus(hits.Count == 0 ? "Hittade ingen känslig information." : "Allt känsligt är redan dolt.");
@@ -1810,7 +1832,7 @@ public sealed partial class EditorWindow : Window
     // Remembered for the session, so the same customer name is quick to hide in the next capture too.
     static string _lastHiddenTerms = "";
 
-    /// <summary>Pixelates every place where the given words or names occur.</summary>
+    /// <summary>Hides every place where the given words or names occur.</summary>
     async Task HideWordsAsync()
     {
         CommitTextEdit();
@@ -1824,7 +1846,7 @@ public sealed partial class EditorWindow : Window
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(new TextBlock
         {
-            Text = "Alla ställen där det står i bilden pixlas. Skilj flera ord eller namn åt med komma.",
+            Text = "Alla ställen där det står i bilden döljs. Skilj flera ord eller namn åt med komma.",
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 400,
         });
@@ -1872,24 +1894,29 @@ public sealed partial class EditorWindow : Window
             ShowStatus($"Hittade inte {quoted} i bilden. Texten läses med OCR – prova gärna en kortare del, t.ex. bara efternamnet.");
             return;
         }
-        var added = PixelateHits(hits);
+        var added = HideHits(hits);
         ShowStatus(added.Count == 0
             ? $"{quoted} är redan dolt överallt."
             : $"Dolde {added.Count} {(added.Count == 1 ? "ställe" : "ställen")} med {quoted}. Ctrl+Z ångrar.");
     }
 
-    /// <summary>Pixelates the hits that are not hidden already, as one undo step; returns those it added.</summary>
-    List<SensitiveHit> PixelateHits(IEnumerable<SensitiveHit> hits)
+    /// <summary>
+    /// Hides the hits that are not hidden already, as one undo step, in the way chosen under
+    /// "Dölj känsligt" (solid boxes unless changed); returns those it added.
+    /// </summary>
+    List<SensitiveHit> HideHits(IEnumerable<SensitiveHit> hits)
     {
+        var method = App.Instance?.Settings.HideMethod ?? HideMethod.Cover;
         var image = new Rect(0, 0, _doc.Size.X, _doc.Size.Y);
-        var covered = _doc.Annotations.OfType<BlurAnnotation>().Select(b => b.GetBounds(_device)).ToList();
+        var covered = _doc.Annotations.Where(a => a is BlurAnnotation or RedactAnnotation).Select(b => b.GetBounds(_device)).ToList();
         var added = new List<SensitiveHit>();
         DocState? before = null;
         foreach (var hit in hits)
         {
             // OCR boxes hug the letters tightly and often miss descenders; pad generously, most of all vertically.
             var b = hit.Bounds;
-            double padX = 4, padY = Math.Max(4, b.Height * 0.35);
+            // A solid box hides everything under it, so it needs less margin than pixels or blur.
+            double padX = 4, padY = method == HideMethod.Cover ? Math.Max(3, b.Height * 0.22) : Math.Max(4, b.Height * 0.35);
             var area = Geo.Intersect(new Rect(b.X - padX, b.Y - padY, b.Width + 2 * padX, b.Height + 2 * padY), image);
             if (area.Width < 2 || area.Height < 2) continue;
             // Running it twice should not stack a second pixelation on the same spot.
@@ -1897,11 +1924,13 @@ public sealed partial class EditorWindow : Window
                 continue;
 
             before ??= _doc.Capture();
-            var pixelate = (BlurAnnotation)CreateAnnotation(Tool.Pixelate, area.TopLeft());
-            pixelate.End = new Vector2((float)area.Right, (float)area.Bottom);
-            // Blocks must be coarse relative to the text height, or short strings stay readable.
-            pixelate.Thickness = Math.Max(pixelate.Thickness, (float)area.Height / 2.5f);
-            _doc.Annotations.Add(pixelate);
+            var tool = method switch { HideMethod.Pixelate => Tool.Pixelate, HideMethod.Blur => Tool.Blur, _ => Tool.Redact };
+            var hide = (BoxAnnotation)CreateAnnotation(tool, area.TopLeft());
+            hide.End = new Vector2((float)area.Right, (float)area.Bottom);
+            // Blocks and blur must be coarse relative to the text height, or short strings stay readable.
+            if (tool == Tool.Pixelate) hide.Thickness = Math.Max(hide.Thickness, (float)area.Height / 2.5f);
+            if (tool == Tool.Blur) hide.Thickness = Math.Max(hide.Thickness, (float)area.Height / 2f);
+            _doc.Annotations.Add(hide);
             covered.Add(area);
             added.Add(hit);
         }

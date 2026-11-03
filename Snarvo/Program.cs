@@ -14,6 +14,21 @@ public static class Program
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
+#if DEBUG
+        // Developer aid: render a library capture to a PNG without opening any window,
+        // to look at how annotations are drawn. Snarvo.exe --render <id> <out.png>
+        if (args.Length == 3 && args[0] == "--render")
+        {
+            Task.Run(async () =>
+            {
+                var doc = await Editor.SnipDocument.LoadAsync(args[1]);
+                using var output = Editor.Renderer.RenderFinal(doc);
+                await output.SaveAsync(Path.GetFullPath(args[2]), Microsoft.Graphics.Canvas.CanvasBitmapFileFormat.Png);
+            }).Wait();
+            return 0;
+        }
+#endif
+
         // Only one Snarvo may own the tray icon, hotkey and clipboard listener.
         // A second launch just asks the running instance to show its library,
         // or to quit when it was started with --exit (the installer does that before updating).

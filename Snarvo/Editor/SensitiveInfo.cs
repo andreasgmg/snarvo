@@ -19,12 +19,16 @@ public static partial class SensitiveInfo
     [GeneratedRegex(@"\b(?:lösen(?:ord)?|password|passwd|pwd|pin(?:kod|code)?|token|secret|hemlig(?:het)?|api[\s_-]?(?:nyckel|key)|access[\s_-]?key|nyckel|key)\s*[:=]\s*(?<value>\S.*)", RegexOptions.IgnoreCase)]
     private static partial Regex LabeledSecret();
 
-    [GeneratedRegex(@"[\w.+-]+\s?@\s?[\w-]+(?:\.[\w-]+)+", RegexOptions.IgnoreCase)]
+    // The dot before the top-level domain is optional: OCR often drops it ("exempelse").
+    [GeneratedRegex(@"[\w.+-]+\s?@\s?[\w-]{2,}(?:\.[\w-]+)*", RegexOptions.IgnoreCase)]
     private static partial Regex Email();
 
     // Swedish personnummer / samordningsnummer, with or without century.
     [GeneratedRegex(@"\b(?:19|20)?\d{6}[-+]?\d{4}\b")]
     private static partial Regex PersonalNumber();
+
+    [GeneratedRegex(@"\b(?:person|pers|p)\.?\s?(?:nummer|nr|nr\.)|samordningsnummer", RegexOptions.IgnoreCase)]
+    private static partial Regex PersonalNumberLabel();
 
     [GeneratedRegex(@"\b(?:\d[ -]?){12,18}\d\b")]
     private static partial Regex CardNumber();
@@ -115,8 +119,9 @@ public static partial class SensitiveInfo
                 Add("IBAN", m.Index, m.Length);
             foreach (Match m in CardNumber().Matches(lineText))
                 if (PassesLuhn(m.Value)) Add("kortnummer", m.Index, m.Length);
+            bool labelled = PersonalNumberLabel().IsMatch(lineText);
             foreach (Match m in PersonalNumber().Matches(lineText))
-                Add("personnummer", m.Index, m.Length);
+                if (labelled || IsPersonalNumber(m.Value)) Add("personnummer", m.Index, m.Length);
             foreach (Match m in Phone().Matches(lineText))
                 if (m.Value.Count(char.IsDigit) >= 8) Add("telefonnummer", m.Index, m.Length);
             foreach (Match m in IpAddress().Matches(lineText))
@@ -176,6 +181,22 @@ public static partial class SensitiveInfo
 
     static bool Overlaps(Rect a, Rect b) =>
         a.Left < b.Right && b.Left < a.Right && a.Top < b.Bottom && b.Top < a.Bottom;
+
+    /// <summary>
+    /// Looks like a Swedish personnummer or samordningsnummer: a real month and a day of 1–31
+    /// (61–91 for samordningsnummer). Keeps order numbers and the like visible. The check digit
+    /// is deliberately not required: one digit misread by OCR must not leave a real number visible.
+    /// </summary>
+    internal static bool IsPersonalNumber(string text)
+    {
+        var digits = new string(text.Where(char.IsDigit).ToArray());
+        if (digits.Length == 12) digits = digits[2..];
+        if (digits.Length != 10) return false;
+        int month = int.Parse(digits.AsSpan(2, 2)), day = int.Parse(digits.AsSpan(4, 2));
+        if (month is < 1 or > 12) return false;
+        if (day > 60) day -= 60;
+        return day is >= 1 and <= 31;
+    }
 
     static bool PassesLuhn(string number)
     {
