@@ -107,6 +107,8 @@ jobs:
           Copy-Item README.md, LICENSE, THIRD-PARTY-NOTICES.md, SAKERHET.md $folder
           $platform = '${{ matrix.platform }}'.ToLowerInvariant()
           Compress-Archive -Path "$folder/*" -DestinationPath "dist/Snarvo-$platform.zip"
+          # Group Policy templates for IT (ADMX/ADML).
+          Compress-Archive -Path policy/* -DestinationPath "dist/Snarvo-grupprinciper.zip"
 
       - uses: actions/upload-artifact@v6
         with:

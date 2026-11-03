@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Andreas Glans. SPDX-License-Identifier: EUPL-1.2 -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Snarvo</displayName>
+  <description>Settings for Snarvo, the companion app for the Windows Snipping Tool.</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_Snarvo_1_2">Snarvo 1.2 or later</string>
+      <string id="Snarvo">Snarvo</string>
+      <string id="Guides">Guides</string>
+
+      <string id="PrivateMode">Private mode</string>
+      <string id="PrivateMode_Help">Enabled: private mode is always on. New screenshots are not kept in the library; they only exist while open in the editor and are deleted when it closes. Users can still keep a single picture explicitly.
+
+Disabled: private mode is always off.
+
+Not configured: users choose for themselves.</string>
+
+      <string id="KeepDays">Delete old screenshots automatically</string>
+      <string id="KeepDays_Help">Screenshots in the library are deleted once they are older than the given number of days. The clean-up runs when Snarvo starts and once an hour. 0 means nothing is deleted automatically.
+
+Not configured: users choose for themselves (default: keep everything).</string>
+
+      <string id="OnlySnippingTool">Only accept pictures from the Snipping Tool</string>
+      <string id="OnlySnippingTool_Help">Enabled: Snarvo only accepts pictures that the Snipping Tool puts on the clipboard. Pictures copied in other programs are ignored.
+
+Disabled: pictures copied in other programs are accepted too.
+
+Not configured: users choose for themselves (default: Snipping Tool only).</string>
+
+      <string id="HideMethod">How sensitive information is hidden</string>
+      <string id="HideMethod_Help">How "Hide sensitive", "Hide words or names" and step recording hide what they find. Cover is the safest: pixelated or blurred text can sometimes be reconstructed.</string>
+      <string id="HideMethod_Cover">Cover (safest)</string>
+      <string id="HideMethod_Pixelate">Pixelate</string>
+      <string id="HideMethod_Blur">Blur</string>
+
+      <string id="AllowStepRecorder">Allow step recording</string>
+      <string id="AllowStepRecorder_Help">Step recording takes a picture of the window the user clicks in, at every mouse click, until the user presses Done. It never records keystrokes.
+
+Disabled: step recording cannot be started.
+
+Enabled or not configured: step recording is available.</string>
+
+      <string id="GuideLogo">Logo in guides</string>
+      <string id="GuideLogo_Help">Path to a picture (PNG or JPG) shown top right in guides saved as PDF, Word or web page. Environment variables such as %PUBLIC% can be used. The user must be able to read the file.</string>
+
+      <string id="GuideAccent">Heading colour in guides</string>
+      <string id="GuideAccent_Help">The colour of the step headings in guides, as hexadecimal RGB, e.g. 0078D4.</string>
+
+      <string id="GuideOrganization">Organisation name in guides</string>
+      <string id="GuideOrganization_Help">Text shown under the title of guides, before the date, e.g. "City of Umeå, IT service".</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="KeepDays">
+        <decimalTextBox refId="KeepDays_Value" defaultValue="30">Number of days (0 = never delete):</decimalTextBox>
+      </presentation>
+      <presentation id="HideMethod">
+        <dropdownList refId="HideMethod_Value" defaultItem="0">Hide by:</dropdownList>
+      </presentation>
+      <presentation id="GuideLogo">
+        <textBox refId="GuideLogo_Value"><label>Path to the picture:</label></textBox>
+      </presentation>
+      <presentation id="GuideAccent">
+        <textBox refId="GuideAccent_Value"><label>Colour (RRGGBB):</label><defaultValue>0078D4</defaultValue></textBox>
+      </presentation>
+      <presentation id="GuideOrganization">
+        <textBox refId="GuideOrganization_Value"><label>Name:</label></textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

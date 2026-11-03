@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Andreas Glans. SPDX-License-Identifier: EUPL-1.2 -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Snarvo</displayName>
+  <description>Inställningar för Snarvo, tillägget till Skärmklippverktyget.</description>
+  <resources>
+    <stringTable>
+      <string id="SUPPORTED_Snarvo_1_2">Snarvo 1.2 eller senare</string>
+      <string id="Snarvo">Snarvo</string>
+      <string id="Guides">Guider</string>
+
+      <string id="PrivateMode">Privat läge</string>
+      <string id="PrivateMode_Help">Aktiverad: privat läge är alltid på. Nya skärmdumpar sparas inte i biblioteket; de finns bara medan de är öppna i editorn och raderas när fönstret stängs. Användaren kan fortfarande spara en enskild bild uttryckligen.
+
+Inaktiverad: privat läge är alltid av.
+
+Inte konfigurerad: användaren väljer själv.</string>
+
+      <string id="KeepDays">Radera gamla skärmdumpar automatiskt</string>
+      <string id="KeepDays_Help">Skärmdumpar i biblioteket raderas när de är äldre än det angivna antalet dagar. Rensningen körs när Snarvo startar och en gång i timmen. 0 betyder att inget raderas automatiskt.
+
+Inte konfigurerad: användaren väljer själv (standard: behåll alla).</string>
+
+      <string id="OnlySnippingTool">Ta bara emot bilder från Skärmklippverktyget</string>
+      <string id="OnlySnippingTool_Help">Aktiverad: Snarvo tar bara emot bilder som Skärmklippverktyget lägger på urklippet. Bilder som kopieras i andra program ignoreras.
+
+Inaktiverad: även bilder som kopieras i andra program tas emot.
+
+Inte konfigurerad: användaren väljer själv (standard: bara Skärmklippverktyget).</string>
+
+      <string id="HideMethod">Så döljs känslig information</string>
+      <string id="HideMethod_Help">Hur "Dölj känsligt", "Dölj ord eller namn" och stegregistreringen döljer det de hittar. Täck över är säkrast: pixlad eller suddig text kan i vissa fall återskapas.</string>
+      <string id="HideMethod_Cover">Täck över (säkrast)</string>
+      <string id="HideMethod_Pixelate">Pixla</string>
+      <string id="HideMethod_Blur">Oskärpa</string>
+
+      <string id="AllowStepRecorder">Tillåt stegregistrering</string>
+      <string id="AllowStepRecorder_Help">Stegregistreringen tar en bild av det fönster användaren klickar i, vid varje musklick, tills användaren trycker Klar. Den registrerar aldrig tangenttryckningar.
+
+Inaktiverad: stegregistreringen går inte att starta.
+
+Aktiverad eller inte konfigurerad: stegregistreringen är tillgänglig.</string>
+
+      <string id="GuideLogo">Logga i guider</string>
+      <string id="GuideLogo_Help">Sökväg till en bild (PNG eller JPG) som visas uppe till höger i guider som sparas som PDF, Word eller webbsida. Miljövariabler, t.ex. %PUBLIC%, går att använda. Filen måste gå att läsa för användaren.</string>
+
+      <string id="GuideAccent">Färg på rubriker i guider</string>
+      <string id="GuideAccent_Help">Färgen på stegrubrikerna i guider, som hexadecimal RGB, t.ex. 0078D4.</string>
+
+      <string id="GuideOrganization">Organisationens namn i guider</string>
+      <string id="GuideOrganization_Help">Text som visas under rubriken i guider, före datumet, t.ex. "Umeå kommun, IT-service".</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="KeepDays">
+        <decimalTextBox refId="KeepDays_Value" defaultValue="30">Antal dagar (0 = radera aldrig):</decimalTextBox>
+      </presentation>
+      <presentation id="HideMethod">
+        <dropdownList refId="HideMethod_Value" defaultItem="0">Döljs genom att:</dropdownList>
+      </presentation>
+      <presentation id="GuideLogo">
+        <textBox refId="GuideLogo_Value"><label>Sökväg till bilden:</label></textBox>
+      </presentation>
+      <presentation id="GuideAccent">
+        <textBox refId="GuideAccent_Value"><label>Färg (RRGGBB):</label><defaultValue>0078D4</defaultValue></textBox>
+      </presentation>
+      <presentation id="GuideOrganization">
+        <textBox refId="GuideOrganization_Value"><label>Namn:</label></textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

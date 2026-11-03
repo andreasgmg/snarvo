@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Andreas Glans. SPDX-License-Identifier: EUPL-1.2 -->
+<!-- Group Policy template for Snarvo. Copy Snarvo.admx to PolicyDefinitions and the .adml files
+     to the matching language folders (sv-SE, en-US). Every policy can be set for the computer or
+     for users; a computer setting wins. -->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="snarvo" namespace="Snarvo.Policies" />
+    <using prefix="windows" namespace="Microsoft.Policies.Windows" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_Snarvo_1_2" displayName="$(string.SUPPORTED_Snarvo_1_2)" />
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="Snarvo" displayName="$(string.Snarvo)" />
+    <category name="Guides" displayName="$(string.Guides)">
+      <parentCategory ref="Snarvo" />
+    </category>
+  </categories>
+  <policies>
+    <policy name="PrivateMode" class="Both" displayName="$(string.PrivateMode)" explainText="$(string.PrivateMode_Help)"
+            key="Software\Policies\Snarvo" valueName="PrivateMode">
+      <parentCategory ref="Snarvo" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+
+    <policy name="KeepDays" class="Both" displayName="$(string.KeepDays)" explainText="$(string.KeepDays_Help)"
+            presentation="$(presentation.KeepDays)" key="Software\Policies\Snarvo">
+      <parentCategory ref="Snarvo" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <elements>
+        <decimal id="KeepDays_Value" valueName="KeepDays" minValue="0" maxValue="3650" required="true" />
+      </elements>
+    </policy>
+
+    <policy name="OnlySnippingTool" class="Both" displayName="$(string.OnlySnippingTool)" explainText="$(string.OnlySnippingTool_Help)"
+            key="Software\Policies\Snarvo" valueName="OnlySnippingTool">
+      <parentCategory ref="Snarvo" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+
+    <policy name="HideMethod" class="Both" displayName="$(string.HideMethod)" explainText="$(string.HideMethod_Help)"
+            presentation="$(presentation.HideMethod)" key="Software\Policies\Snarvo">
+      <parentCategory ref="Snarvo" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <elements>
+        <enum id="HideMethod_Value" valueName="HideMethod" required="true">
+          <item displayName="$(string.HideMethod_Cover)"><value><decimal value="0" /></value></item>
+          <item displayName="$(string.HideMethod_Pixelate)"><value><decimal value="1" /></value></item>
+          <item displayName="$(string.HideMethod_Blur)"><value><decimal value="2" /></value></item>
+        </enum>
+      </elements>
+    </policy>
+
+    <policy name="AllowStepRecorder" class="Both" displayName="$(string.AllowStepRecorder)" explainText="$(string.AllowStepRecorder_Help)"
+            key="Software\Policies\Snarvo" valueName="AllowStepRecorder">
+      <parentCategory ref="Snarvo" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+
+    <policy name="GuideLogo" class="Both" displayName="$(string.GuideLogo)" explainText="$(string.GuideLogo_Help)"
+            presentation="$(presentation.GuideLogo)" key="Software\Policies\Snarvo">
+      <parentCategory ref="Guides" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <elements>
+        <text id="GuideLogo_Value" valueName="GuideLogo" required="true" expandable="true" />
+      </elements>
+    </policy>
+
+    <policy name="GuideAccent" class="Both" displayName="$(string.GuideAccent)" explainText="$(string.GuideAccent_Help)"
+            presentation="$(presentation.GuideAccent)" key="Software\Policies\Snarvo">
+      <parentCategory ref="Guides" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <elements>
+        <text id="GuideAccent_Value" valueName="GuideAccent" required="true" maxLength="7" />
+      </elements>
+    </policy>
+
+    <policy name="GuideOrganization" class="Both" displayName="$(string.GuideOrganization)" explainText="$(string.GuideOrganization_Help)"
+            presentation="$(presentation.GuideOrganization)" key="Software\Policies\Snarvo">
+      <parentCategory ref="Guides" />
+      <supportedOn ref="SUPPORTED_Snarvo_1_2" />
+      <elements>
+        <text id="GuideOrganization_Value" valueName="GuideOrganization" required="true" maxLength="120" />
+      </elements>
+    </policy>
+  </policies>
+</policyDefinitions>

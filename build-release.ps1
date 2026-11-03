@@ -28,7 +28,9 @@ $app = Join-Path $dist "Snarvo-$version-x64.zip"
 $source = Join-Path $dist "Snarvo-$version-kallkod.zip"
 Compress-Archive -Path publish\*, SAKERHET.md, README.md, LICENSE, THIRD-PARTY-NOTICES.md -DestinationPath $app
 git archive --format=zip --prefix="Snarvo-$version/" -o $source HEAD
-$files = @($app, $source)
+$policy = Join-Path $dist "Snarvo-$version-grupprinciper.zip"
+Compress-Archive -Path policy\* -DestinationPath $policy
+$files = @($app, $source, $policy)
 
 $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe") |
     Where-Object { Test-Path $_ } | Select-Object -First 1

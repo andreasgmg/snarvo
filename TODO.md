@@ -67,7 +67,7 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild
       per klick, en ring där du klickade och en färdig text ("Klicka på Spara").
 - [x] **36. Guider:** egen logga och färg, export till webbsida (HTML), alternativtext på bilderna (Word och webbsida; PDF saknar taggning).
-- [ ] **37. Centrala inställningar för IT:** grupprinciper (ADMX) och register under
+- [x] **37. Centrala inställningar för IT:** grupprinciper (ADMX) och register under
       `HKLM\Software\Policies\Snarvo`; låsta inställningar syns som "styrs av din organisation".
 - [ ] **38. winget:** manifest och skript så att Snarvo kan installeras med `winget install`.
 - [ ] **39. Engelsk version:** appen följer Windows språk (svenska, annars engelska).
