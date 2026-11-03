@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Windows.AppLifecycle;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Snarvo.Editor;
 using Snarvo.Native;
 using Snarvo.Services;
@@ -104,6 +105,10 @@ public partial class App : Application
         {
             foreach (var file in files) _ = OpenFileAsync(file);
         }
+        else if (commandLine.Contains("--settings"))
+        {
+            ShowSettings();
+        }
         else if (!background)
         {
             ShowLibrary();
@@ -140,6 +145,11 @@ public partial class App : Application
             _queue?.TryEnqueue(() => _ = ExitAsync());
             return;
         }
+        if (files.Contains("--settings"))
+        {
+            _queue?.TryEnqueue(() => ShowSettings());
+            return;
+        }
         files = files.Where(IsOpenableFile).ToList();
         _queue?.TryEnqueue(() =>
         {
@@ -158,29 +168,58 @@ public partial class App : Application
             if (_library is { } library) _ = VideoWindow.PickAndOpenAsync(library);
         }),
         TrayMenuItem.Separator,
-        new("Privat läge – spara inte skärmdumpar", TogglePrivateMode, Settings.PrivateMode),
-        new("Öppna editorn efter varje snip", () =>
-        {
-            Settings.AutoOpenEditor = !Settings.AutoOpenEditor;
-            Settings.Save();
-        }, Settings.AutoOpenEditor),
-        new("Kopiera bilden när editorn stängs", () =>
-        {
-            Settings.CopyOnClose = !Settings.CopyOnClose;
-            Settings.Save();
-        }, Settings.CopyOnClose),
-        new("Fånga bara bilder från Snipping Tool", () =>
-        {
-            Settings.OnlySnippingTool = !Settings.OnlySnippingTool;
-            Settings.Save();
-        }, Settings.OnlySnippingTool),
-        new("Starta med Windows", () => AppSettings.StartWithWindows = !AppSettings.StartWithWindows,
-            AppSettings.StartWithWindows),
+        new(Policy.IsLocked(Policy.PrivateModeName) ? $"Privat läge ({Policy.LockedText.ToLowerInvariant()})" : "Privat läge – spara inte skärmdumpar",
+            TogglePrivateMode, Settings.PrivateMode, Enabled: !Policy.IsLocked(Policy.PrivateModeName)),
+        new("Inställningar …", () => ShowSettings()),
         TrayMenuItem.Separator,
-        new("Om Snarvo", () => _tray?.ShowBalloon($"Snarvo {typeof(App).Assembly.GetName().Version?.ToString(3)}",
-            "© 2026 Andreas Glans. Fri programvara med öppen källkod under licensen EUPL-1.2.")),
+        new("Om Snarvo", () => ShowSettings(about: true)),
         new("Avsluta Snarvo", () => _ = ExitAsync()),
     ];
+
+    SettingsWindow? _settingsWindow;
+
+    public void ShowSettings(bool about = false)
+    {
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow();
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        }
+        if (about) _settingsWindow.ShowAbout();
+        WindowHelper.BringToFront(_settingsWindow);
+    }
+
+    public static string DaysText(int days) => days == 1 ? "1 dag" : $"{days} dagar";
+
+    /// <summary>
+    /// Changes how long captures are kept. Shortening it deletes old captures straight away,
+    /// so that is confirmed first. Returns false when the user cancels.
+    /// </summary>
+    public async Task<bool> SetKeepDaysAsync(XamlRoot root, int days)
+    {
+        if (Policy.IsLocked(Policy.KeepDaysName)) return false;
+        if (days > 0)
+        {
+            int old = Library.CountOlderThan(days);
+            var dialog = new ContentDialog
+            {
+                XamlRoot = root,
+                Title = old == 0 ? "Slå på automatisk rensning?" : old == 1 ? "Radera 1 skärmdump?" : $"Radera {old} skärmdumpar?",
+                Content = (old == 0 ? "" : $"{(old == 1 ? "1 skärmdump är" : $"{old} skärmdumpar är")} äldre än {DaysText(days)} och raderas direkt. ") +
+                          $"Därefter raderas skärmdumpar automatiskt när de blir {DaysText(days)} gamla. " +
+                          "Bilder som är öppna i editorn raderas först när de har stängts. Det går inte att ångra.",
+                PrimaryButtonText = old == 0 ? "Slå på" : "Radera och slå på",
+                CloseButtonText = "Avbryt",
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
+        }
+        Settings.KeepDays = days;
+        SaveSettingsSoon();
+        CleanUp();
+        if (root != _library?.Content.XamlRoot) _library?.OnKeepDaysChanged();
+        return true;
+    }
 
     /// <summary>Applies the automatic clean-up setting. Captures open in an editor wait until next time.</summary>
     public void CleanUp()
@@ -200,8 +239,9 @@ public partial class App : Application
         }
     }
 
-    void TogglePrivateMode()
+    public void TogglePrivateMode()
     {
+        if (Policy.IsLocked(Policy.PrivateModeName)) return;
         Settings.PrivateMode = !Settings.PrivateMode;
         SaveSettings();
         Library.NotifyChanged(); // the library window shows the mode

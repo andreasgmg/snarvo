@@ -7,8 +7,8 @@
     xmlns:local="using:Snarvo">
 
     <Grid x:Name="Root" RowDefinitions="Auto,*">
-        <Grid Padding="20,16,20,12" ColumnSpacing="16" ColumnDefinitions="Auto,*,Auto">
-            <AutoSuggestBox x:Name="SearchBox" Grid.Column="1" MaxWidth="460" VerticalAlignment="Center"
+        <Grid Padding="20,16,20,12" ColumnSpacing="16" RowSpacing="14" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+            <AutoSuggestBox x:Name="SearchBox" Grid.Row="1" Grid.ColumnSpan="3" Width="440" HorizontalAlignment="Left"
                             PlaceholderText="Sök på text i skärmdumparna …" QueryIcon="Find"
                             TextChanged="SearchBox_TextChanged" />
             <StackPanel Spacing="2">
@@ -47,18 +47,25 @@
                         <TextBlock Text="Guide" />
                     </StackPanel>
                 </Button>
-                <Button Click="Video_Click" AutomationProperties.Name="Video till GIF" ToolTipService.ToolTip="Gör en GIF av en skärminspelning från Skärmklippverktyget">
+                <DropDownButton AutomationProperties.Name="Mer" ToolTipService.ToolTip="Öppna en bild, gör en GIF eller visa mappen">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE714;" FontSize="16" />
-                        <TextBlock Text="Video → GIF" />
+                        <FontIcon Glyph="&#xE712;" FontSize="16" />
+                        <TextBlock Text="Mer" />
                     </StackPanel>
-                </Button>
-                <Button Click="Open_Click" AutomationProperties.Name="Öppna bild">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8E5;" FontSize="16" />
-                        <TextBlock Text="Öppna bild…" />
-                    </StackPanel>
-                </Button>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Öppna bild …" Click="Open_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8E5;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Gör GIF av en skärminspelning …" Click="Video_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE714;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Visa biblioteksmappen" Click="Folder_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
                 <DropDownButton x:Name="RetentionButton" AutomationProperties.Name="Automatisk rensning"
                                 ToolTipService.ToolTip="Radera gamla skärmdumpar automatiskt">
                     <FontIcon Glyph="&#xE81C;" FontSize="16" />
@@ -66,8 +73,8 @@
                         <MenuFlyout x:Name="RetentionMenu" Placement="BottomEdgeAlignedRight" />
                     </DropDownButton.Flyout>
                 </DropDownButton>
-                <Button Click="Folder_Click" AutomationProperties.Name="Visa biblioteksmappen" ToolTipService.ToolTip="Visa biblioteksmappen i Utforskaren">
-                    <FontIcon Glyph="&#xE838;" FontSize="16" />
+                <Button Click="Settings_Click" AutomationProperties.Name="Inställningar" ToolTipService.ToolTip="Inställningar">
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
                 </Button>
             </StackPanel>
         </Grid>

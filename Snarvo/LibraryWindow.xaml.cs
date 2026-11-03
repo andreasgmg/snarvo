@@ -66,8 +66,7 @@ public sealed partial class LibraryWindow : Window
     {
         InitializeComponent();
         Title = "Snarvo – Bibliotek";
-        SystemBackdrop = new MicaBackdrop();
-        AppWindow.SetIcon(App.IconPath);
+        WindowHelper.Prepare(this);
 
         EmptyHint.Text = $"Ta en skärmdump med {App.HotkeyText}, klicka på Snarvo-ikonen i systemfältet, " +
                          "eller använd Win+Shift+S som vanligt – den hamnar här automatiskt.";
@@ -326,12 +325,13 @@ public sealed partial class LibraryWindow : Window
 
     // ───────────────────────────── automatic clean-up ─────────────────────────────
 
-    static string DaysText(int days) => days == 1 ? "1 dag" : $"{days} dagar";
+    static string DaysText(int days) => App.DaysText(days);
 
     void BuildRetentionMenu()
     {
         RetentionMenu.Items.Clear();
         var current = App.Instance?.Settings.KeepDays ?? 0;
+        RetentionButton.IsEnabled = !Policy.IsLocked(Policy.KeepDaysName);
         foreach (var days in new[] { 0 }.Concat(AppSettings.KeepDayChoices.Reverse()))
         {
             var item = new RadioMenuFlyoutItem
@@ -352,32 +352,19 @@ public sealed partial class LibraryWindow : Window
     async Task SetKeepDaysAsync(int days)
     {
         if (App.Instance is not { } app) return;
-        if (days > 0)
-        {
-            int old = Library.CountOlderThan(days);
-            var dialog = new ContentDialog
-            {
-                XamlRoot = Root.XamlRoot,
-                Title = old == 0 ? "Slå på automatisk rensning?" : old == 1 ? "Radera 1 skärmdump?" : $"Radera {old} skärmdumpar?",
-                Content = (old == 0 ? "" : $"{(old == 1 ? "1 skärmdump är" : $"{old} skärmdumpar är")} äldre än {DaysText(days)} och raderas direkt. ") +
-                          $"Därefter raderas skärmdumpar automatiskt när de blir {DaysText(days)} gamla. " +
-                          "Bilder som är öppna i editorn raderas först när de har stängts. Det går inte att ångra.",
-                PrimaryButtonText = old == 0 ? "Slå på" : "Radera och slå på",
-                CloseButtonText = "Avbryt",
-                DefaultButton = ContentDialogButton.Close,
-            };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-            {
-                BuildRetentionMenu();
-                return;
-            }
-        }
-        app.Settings.KeepDays = days;
-        app.SaveSettingsSoon();
-        app.CleanUp();
+        await app.SetKeepDaysAsync(Root.XamlRoot, days);
         BuildRetentionMenu();
         ApplyFilter();
     }
+
+    /// <summary>The settings window changed the clean-up period.</summary>
+    public void OnKeepDaysChanged()
+    {
+        BuildRetentionMenu();
+        ApplyFilter();
+    }
+
+    void Settings_Click(object sender, RoutedEventArgs e) => App.Instance?.ShowSettings();
 
     void Folder_Click(object sender, RoutedEventArgs e)
     {

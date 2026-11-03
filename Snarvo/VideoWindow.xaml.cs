@@ -30,8 +30,7 @@ public sealed partial class VideoWindow : Window
         _video = video;
         InitializeComponent();
         Title = $"Snarvo – GIF av {video.Name}";
-        SystemBackdrop = new MicaBackdrop();
-        AppWindow.SetIcon(App.IconPath);
+        WindowHelper.Prepare(this);
 
         foreach (var fps in FrameRates) FpsBox.Items.Add($"{fps} bilder/s");
         foreach (var width in Widths) WidthBox.Items.Add(width == int.MaxValue ? "Originalstorlek" : $"{width} px");

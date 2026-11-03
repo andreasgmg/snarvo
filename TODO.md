@@ -61,7 +61,7 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
       över som standard, med val för pixla/oskärpa. Personnummer måste ha ett rimligt datum (inte kontrollsiffra – en felläst siffra får inte lämna ett riktigt nummer synligt). E-post hittas även när OCR tappar punkten.
 - [x] **32. Lugnare verktygsfält:** färre knappar; spara, exportera och storlek under "Dela",
       Förenkla och Läs text under "Mer".
-- [ ] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.
+- [x] **33. Inställningsfönster:** Allmänt, Integritet och Utseende samlat i ett fönster.
 - [ ] **34. Klicka på text för att markera:** ett klick (utan att dra) med rektangel, överstrykning
       eller täck över på ett ord markerar exakt det ordet.
 - [ ] **35. Stegregistrering:** Starta, klicka runt som vanligt, Stoppa → färdig guide med en bild

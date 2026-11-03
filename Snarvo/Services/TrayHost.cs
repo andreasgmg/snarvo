@@ -7,7 +7,7 @@ using Snarvo.Native;
 
 namespace Snarvo.Services;
 
-public sealed record TrayMenuItem(string Text, Action? OnClick = null, bool Checked = false)
+public sealed record TrayMenuItem(string Text, Action? OnClick = null, bool Checked = false, bool Enabled = true)
 {
     public static TrayMenuItem Separator { get; } = new("-");
     public bool IsSeparator => Text == "-";
@@ -175,7 +175,7 @@ internal sealed class TrayHost : IDisposable
             if (item.IsSeparator)
                 Win32.AppendMenu(menu, Win32.MF_SEPARATOR, UIntPtr.Zero, null);
             else
-                Win32.AppendMenu(menu, Win32.MF_STRING | (item.Checked ? Win32.MF_CHECKED : 0), (UIntPtr)(i + 1), item.Text);
+                Win32.AppendMenu(menu, Win32.MF_STRING | (item.Checked ? Win32.MF_CHECKED : 0) | (item.Enabled ? 0 : Win32.MF_GRAYED), (UIntPtr)(i + 1), item.Text);
         }
 
         Win32.GetCursorPos(out var pt);

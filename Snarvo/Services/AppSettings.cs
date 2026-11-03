@@ -10,6 +10,8 @@ namespace Snarvo.Services;
 /// <summary>How "Dölj känsligt" and "Dölj ord eller namn" hide what they find.</summary>
 public enum HideMethod { Cover, Pixelate, Blur }
 
+public enum AppTheme { System, Light, Dark }
+
 public sealed class AppSettings
 {
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -109,21 +111,26 @@ public sealed class AppSettings
     /// <summary>Solid boxes by default: pixelated and blurred text can sometimes be reconstructed.</summary>
     public HideMethod HideMethod { get; set; } = HideMethod.Cover;
 
+    /// <summary>Light or dark windows; follows Windows unless chosen.</summary>
+    public AppTheme Theme { get; set; }
+
     /// <summary>Preset whose frame effects new captures start with, if any.</summary>
     public string? DefaultPreset { get; set; }
 
     public static AppSettings Load()
     {
+        var settings = new AppSettings();
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Json) ?? new();
+                settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Json) ?? new();
         }
         catch (Exception ex)
         {
             App.Log(ex);
         }
-        return new();
+        Policy.Apply(settings);
+        return settings;
     }
 
     public void Save()

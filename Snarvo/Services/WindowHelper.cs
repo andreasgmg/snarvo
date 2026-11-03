@@ -10,6 +10,41 @@ namespace Snarvo.Services;
 
 internal static class WindowHelper
 {
+    static readonly List<Window> Open = [];
+
+    /// <summary>Icon, backdrop and theme every Snarvo window shares; also tracks it for theme changes.</summary>
+    public static void Prepare(Window window)
+    {
+        window.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+        window.AppWindow.SetIcon(App.IconPath);
+        Open.Add(window);
+        window.Closed += (_, _) => Open.Remove(window);
+        ApplyTheme(window);
+    }
+
+    public static void ApplyThemeToAll()
+    {
+        foreach (var window in Open.ToList()) ApplyTheme(window);
+    }
+
+    static void ApplyTheme(Window window)
+    {
+        var theme = App.Instance?.Settings.Theme ?? AppTheme.System;
+        if (window.Content is FrameworkElement root)
+            root.RequestedTheme = theme switch
+            {
+                AppTheme.Light => ElementTheme.Light,
+                AppTheme.Dark => ElementTheme.Dark,
+                _ => ElementTheme.Default,
+            };
+        window.AppWindow.TitleBar.PreferredTheme = theme switch
+        {
+            AppTheme.Light => TitleBarTheme.Light,
+            AppTheme.Dark => TitleBarTheme.Dark,
+            _ => TitleBarTheme.UseDefaultAppMode,
+        };
+    }
+
     public static IntPtr Handle(Window window) => WinRT.Interop.WindowNative.GetWindowHandle(window);
 
     public static double Scale(Window window) => Win32.GetDpiForWindow(Handle(window)) / 96.0;

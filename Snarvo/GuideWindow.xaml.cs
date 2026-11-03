@@ -50,8 +50,7 @@ public sealed partial class GuideWindow : Window
     {
         InitializeComponent();
         Title = "Snarvo – Steg-för-steg-guide";
-        SystemBackdrop = new MicaBackdrop();
-        AppWindow.SetIcon(App.IconPath);
+        WindowHelper.Prepare(this);
 
         // Oldest first: the order the steps were captured in.
         foreach (var id in ids.Order(StringComparer.Ordinal))

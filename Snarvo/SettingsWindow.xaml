@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Andreas Glans. SPDX-License-Identifier: EUPL-1.2 -->
+<Window
+    x:Class="Snarvo.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid x:Name="Root">
+        <Grid.Resources>
+            <!-- One setting: title and explanation on the left, its control on the right. -->
+            <Style x:Key="Card" TargetType="Grid">
+                <Setter Property="Padding" Value="18,14" />
+                <Setter Property="ColumnSpacing" Value="24" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="MinHeight" Value="68" />
+            </Style>
+            <Style x:Key="CardTitle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="CardText" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+                <Setter Property="Margin" Value="2,26,0,6" />
+            </Style>
+        </Grid.Resources>
+
+        <ScrollViewer x:Name="Scroller">
+            <StackPanel MaxWidth="760" Padding="32,24,32,40" Spacing="4">
+                <TextBlock Text="Inställningar" Style="{StaticResource TitleTextBlockStyle}" Margin="2,0,0,8" />
+
+                <InfoBar x:Name="PolicyBar" IsOpen="False" IsClosable="False" Severity="Informational"
+                         Title="Vissa inställningar styrs av din organisation"
+                         Message="De går inte att ändra här. Kontakta IT-avdelningen om du har frågor." />
+
+                <!-- ── Allmänt ── -->
+                <TextBlock Text="Allmänt" Style="{StaticResource Section}" />
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Starta Snarvo när du loggar in i Windows" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Då ligger Snarvo alltid redo i systemfältet." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="AutostartSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Starta med Windows" Toggled="AutostartSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Öppna editorn efter varje skärmdump" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Annars sparas skärmdumpen i biblioteket och du får en avisering som öppnar den." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="AutoOpenSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Öppna editorn efter varje skärmdump" Toggled="AutoOpenSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Kopiera bilden när editorn stängs" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Rita, stäng fönstret och klistra in – utan Ctrl+C." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="CopyOnCloseSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Kopiera bilden när editorn stängs" Toggled="CopyOnCloseSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Ta bara emot bilder från Skärmklippverktyget" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="OnlySnippingToolText" Text="Bilder som du kopierar i andra program hamnar inte i Snarvo." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="OnlySnippingToolSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Ta bara emot bilder från Skärmklippverktyget" Toggled="OnlySnippingToolSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Kortkommando för ny skärmdump" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Win+Shift+S fungerar också som vanligt." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <TextBlock x:Name="HotkeyText" Grid.Column="1" VerticalAlignment="Center" FontWeight="SemiBold" />
+                </Grid>
+
+                <!-- ── Integritet ── -->
+                <TextBlock Text="Integritet" Style="{StaticResource Section}" />
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Privat läge" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="PrivateModeText" Text="Nya skärmdumpar sparas inte. De finns bara medan editorn är öppen och raderas när du stänger den." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="PrivateModeSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Privat läge" Toggled="PrivateModeSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Radera gamla skärmdumpar automatiskt" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="KeepDaysText" Text="Skärmdumpar i biblioteket raderas när de har nått en viss ålder." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ComboBox x:Name="KeepDaysBox" Grid.Column="1" VerticalAlignment="Center" MinWidth="190"
+                              AutomationProperties.Name="Radera gamla skärmdumpar" SelectionChanged="KeepDaysBox_SelectionChanged" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Så döljs känslig information" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="HideMethodText" Text="Gäller &quot;Dölj känsligt&quot; och &quot;Dölj ord eller namn&quot;. Pixlad eller suddig text kan i vissa fall återskapas, det kan inte en täckt ruta." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ComboBox x:Name="HideMethodBox" Grid.Column="1" VerticalAlignment="Center" MinWidth="190"
+                              AutomationProperties.Name="Så döljs känslig information" SelectionChanged="HideMethodBox_SelectionChanged">
+                        <ComboBoxItem Content="Täck över (säkrast)" />
+                        <ComboBoxItem Content="Pixla" />
+                        <ComboBoxItem Content="Oskärpa" />
+                    </ComboBox>
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Här sparas dina skärmdumpar" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="DataFolderText" Style="{StaticResource CardText}" IsTextSelectionEnabled="True" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Öppna mappen" VerticalAlignment="Center" Click="OpenFolder_Click" />
+                </Grid>
+
+                <!-- ── Utseende ── -->
+                <TextBlock Text="Utseende" Style="{StaticResource Section}" />
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Färgtema" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Ljust eller mörkt utseende i Snarvos fönster." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ThemeBox" Grid.Column="1" VerticalAlignment="Center" MinWidth="190"
+                              AutomationProperties.Name="Färgtema" SelectionChanged="ThemeBox_SelectionChanged">
+                        <ComboBoxItem Content="Som Windows" />
+                        <ComboBoxItem Content="Ljust" />
+                        <ComboBoxItem Content="Mörkt" />
+                    </ComboBox>
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Text med bakgrund" Style="{StaticResource CardTitle}" />
+                        <TextBlock Text="Ny text i editorn visas som en etikett med färgad bakgrund, som är lätt att läsa på röriga bilder." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="LabelSwitch" Grid.Column="1" OnContent="På" OffContent="Av" MinWidth="0"
+                                  AutomationProperties.Name="Text med bakgrund" Toggled="LabelSwitch_Toggled" />
+                </Grid>
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="*,Auto">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Färger och storlekar" Style="{StaticResource CardTitle}" />
+                        <TextBlock x:Name="ResetStylesText" Text="Varje verktyg minns färgen och storleken du använde senast." Style="{StaticResource CardText}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Återställ" VerticalAlignment="Center" Click="ResetStyles_Click" />
+                </Grid>
+
+                <!-- ── Om ── -->
+                <TextBlock x:Name="AboutHeader" Text="Om Snarvo" Style="{StaticResource Section}" />
+
+                <Grid Style="{StaticResource Card}" ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                    <Image Source="ms-appx:///Assets/Snarvo.ico" Width="40" Height="40" VerticalAlignment="Top" Margin="0,4,0,0" />
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock x:Name="VersionText" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock Style="{StaticResource CardText}"
+                                   Text="© 2026 Andreas Glans. Fri programvara med öppen källkod under licensen EUPL-1.2. Snarvo har ingen nätverkskod och skickar ingenting någonstans." />
+                        <StackPanel Orientation="Horizontal" Spacing="4" Margin="-12,4,0,0">
+                            <HyperlinkButton Content="Hemsida" NavigateUri="https://andreasgmg.github.io/snarvo/" />
+                            <HyperlinkButton Content="Källkod" NavigateUri="https://github.com/andreasgmg/snarvo" />
+                            <HyperlinkButton Content="Säkerhetsbeskrivning" NavigateUri="https://github.com/andreasgmg/snarvo/blob/main/SAKERHET.md" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

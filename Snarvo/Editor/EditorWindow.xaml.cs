@@ -114,8 +114,7 @@ public sealed partial class EditorWindow : Window
         InitializeComponent();
 
         UpdateTitle();
-        SystemBackdrop = new MicaBackdrop();
-        AppWindow.SetIcon(App.IconPath);
+        WindowHelper.Prepare(this);
 
         _statusTimer = DispatcherQueue.CreateTimer();
         _statusTimer.Interval = TimeSpan.FromSeconds(3);
