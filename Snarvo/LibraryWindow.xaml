@@ -48,7 +48,7 @@
                     </DropDownButton.Flyout>
                 </DropDownButton>
                 <Button x:Name="GuideButton" Click="Guide_Click" IsEnabled="False" AutomationProperties.Name="Guide"
-                        ToolTipService.ToolTip="Gör en steg-för-steg-guide (PDF eller Word) av markerade skärmdumpar. Markera flera med Ctrl+klick.">
+                        ToolTipService.ToolTip="Gör en steg-för-steg-guide (PDF, Word eller webbsida) av markerade skärmdumpar. Markera flera med Ctrl+klick.">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8FD;" FontSize="16" />
                         <TextBlock Text="Guide" />

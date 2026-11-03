@@ -14,6 +14,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using Windows.System;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -35,7 +36,7 @@ public sealed class LibraryItem(string id)
     public string ImagePath => File.Exists(Library.OutputPath(Id)) ? Library.OutputPath(Id) : Library.OriginalPath(Id);
 
     /// <summary>What screen readers announce for the item (otherwise the class name).</summary>
-    public override string ToString() => $"Skärmdump {Label}";
+    public override string ToString() => F("Skärmdump {0}", Label);
 
     public async Task LoadThumbnailAsync()
     {
@@ -65,11 +66,12 @@ public sealed partial class LibraryWindow : Window
     public LibraryWindow()
     {
         InitializeComponent();
-        Title = "Snarvo – Bibliotek";
+        Title = T("Snarvo – Bibliotek");
+        Localization.Translate(Root);
+        Localization.TranslateItems(Items);
         WindowHelper.Prepare(this);
 
-        EmptyHint.Text = $"Ta en skärmdump med {App.HotkeyText}, klicka på Snarvo-ikonen i systemfältet, " +
-                         "eller använd Win+Shift+S som vanligt – den hamnar här automatiskt.";
+        EmptyHint.Text = F("Ta en skärmdump med {0}, klicka på Snarvo-ikonen i systemfältet, eller använd Win+Shift+S som vanligt – den hamnar här automatiskt.", App.HotkeyText);
 
         Items.ItemsSource = _items;
         RecordButton.IsEnabled = Policy.StepRecorderAllowed;
@@ -152,14 +154,14 @@ public sealed partial class LibraryWindow : Window
         }
 
         Subtitle.Text = words.Length > 0
-            ? $"{visible.Count} av {_all.Count} skärmdumpar"
-            : _all.Count == 1 ? "1 skärmdump" : $"{_all.Count} skärmdumpar";
+            ? F("{0} av {1} skärmdumpar", visible.Count, _all.Count)
+            : _all.Count == 1 ? T("1 skärmdump") : F("{0} skärmdumpar", _all.Count);
         if (App.Instance?.Settings is { } settings)
         {
-            if (settings.KeepDays > 0) Subtitle.Text += $" · raderas efter {DaysText(settings.KeepDays)}";
-            if (settings.PrivateMode) Subtitle.Text += " · privat läge, nya sparas inte";
+            if (settings.KeepDays > 0) Subtitle.Text += F(" · raderas efter {0}", DaysText(settings.KeepDays));
+            if (settings.PrivateMode) Subtitle.Text += T(" · privat läge, nya sparas inte");
         }
-        NoResults.Text = $"Ingen skärmdump innehåller \"{SearchBox.Text.Trim()}\". Texten i nya bilder läses in några sekunder efter att de tagits.";
+        NoResults.Text = F("Ingen skärmdump innehåller \"{0}\". Texten i nya bilder läses in några sekunder efter att de tagits.", SearchBox.Text.Trim());
         NoResults.Visibility = words.Length > 0 && visible.Count == 0 && _all.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -231,10 +233,10 @@ public sealed partial class LibraryWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = items.Count == 1 ? "Ta bort skärmdumpen?" : $"Ta bort {items.Count} skärmdumpar?",
-            Content = "Det går inte att ångra.",
-            PrimaryButtonText = "Ta bort",
-            CloseButtonText = "Avbryt",
+            Title = items.Count == 1 ? T("Ta bort skärmdumpen?") : F("Ta bort {0} skärmdumpar?", items.Count),
+            Content = T("Det går inte att ångra."),
+            PrimaryButtonText = T("Ta bort"),
+            CloseButtonText = T("Avbryt"),
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -337,7 +339,7 @@ public sealed partial class LibraryWindow : Window
         {
             var item = new RadioMenuFlyoutItem
             {
-                Text = days == 0 ? "Behåll alla skärmdumpar" : $"Radera skärmdumpar äldre än {DaysText(days)}",
+                Text = days == 0 ? T("Behåll alla skärmdumpar") : F("Radera skärmdumpar äldre än {0}", DaysText(days)),
                 GroupName = "Retention",
                 IsChecked = days == current,
             };
@@ -345,8 +347,8 @@ public sealed partial class LibraryWindow : Window
             RetentionMenu.Items.Add(item);
         }
         ToolTipService.SetToolTip(RetentionButton, current == 0
-            ? "Automatisk rensning: av – alla skärmdumpar sparas tills du tar bort dem"
-            : $"Automatisk rensning: skärmdumpar raderas när de är {DaysText(current)} gamla");
+            ? T("Automatisk rensning: av – alla skärmdumpar sparas tills du tar bort dem")
+            : F("Automatisk rensning: skärmdumpar raderas när de är {0} gamla", DaysText(current)));
     }
 
     /// <summary>Turns on clean-up after asking, since it deletes old captures straight away.</summary>

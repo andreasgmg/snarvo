@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Snarvo.Services;
 using Windows.Storage.Pickers;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -33,7 +34,7 @@ public sealed class GuideStepItem(LibraryItem image) : INotifyPropertyChanged
         }
     }
 
-    public string Heading => $"Steg {Number}";
+    public string Heading => F("Steg {0}", Number);
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
@@ -53,7 +54,9 @@ public sealed partial class GuideWindow : Window
         bool recorded = false, bool deleteOnClose = false)
     {
         InitializeComponent();
-        Title = "Snarvo – Steg-för-steg-guide";
+        Title = T("Snarvo – Steg-för-steg-guide");
+        Localization.Translate(Root);
+        Localization.TranslateItems(StepsList);
         WindowHelper.Prepare(this);
 
         // Oldest first: the order the steps were captured in.
@@ -70,8 +73,8 @@ public sealed partial class GuideWindow : Window
         // A recorded guide is unsaved work from the start, so closing it asks first.
         _savedSnapshot = recorded ? "" : Snapshot();
         if (recorded)
-            StatusText.Text = $"{idList.Count} steg inspelade. Texterna är förslag – skriv om dem som du vill." +
-                              (deleteOnClose ? " Privat läge: bilderna raderas när guiden stängs." : "");
+            StatusText.Text = F("{0} steg inspelade. Texterna är förslag – skriv om dem som du vill.", idList.Count) +
+                              (deleteOnClose ? " " + T("Privat läge: bilderna raderas när guiden stängs.") : "");
         if (deleteOnClose)
             Closed += (_, _) =>
             {
@@ -93,7 +96,7 @@ public sealed partial class GuideWindow : Window
     {
         for (int i = 0; i < _steps.Count; i++) _steps[i].Number = i + 1;
         PdfButton.IsEnabled = WordButton.IsEnabled = HtmlButton.IsEnabled = _steps.Count > 0 && !_saving;
-        if (_steps.Count == 0) StatusText.Text = "Guiden har inga steg. Markera skärmdumpar i biblioteket och välj Guide.";
+        if (_steps.Count == 0) StatusText.Text = T("Guiden har inga steg. Markera skärmdumpar i biblioteket och välj Guide.");
     }
 
     /// <summary>Edits in the editor show up here; deleted screenshots drop out of the guide.</summary>
@@ -142,7 +145,7 @@ public sealed partial class GuideWindow : Window
         var picker = new FileSavePicker
         {
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
-            SuggestedFileName = name.Length > 0 ? name : "Guide",
+            SuggestedFileName = name.Length > 0 ? name : T("Guide"),
         };
         var (kind, extension) = format switch
         {
@@ -150,14 +153,14 @@ public sealed partial class GuideWindow : Window
             Format.Html => ("Webbsida", ".html"),
             _ => ("PDF-dokument", ".pdf"),
         };
-        picker.FileTypeChoices.Add(kind, new List<string> { extension });
+        picker.FileTypeChoices.Add(T(kind), new List<string> { extension });
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHelper.Handle(this));
         var file = await picker.PickSaveFileAsync();
         if (file is null) return;
 
         _saving = true;
         UpdateSteps();
-        StatusText.Text = "Skapar dokumentet …";
+        StatusText.Text = T("Skapar dokumentet …");
         try
         {
             var settings = App.Instance?.Settings;
@@ -174,13 +177,13 @@ public sealed partial class GuideWindow : Window
 
             _savedPath = file.Path;
             _savedSnapshot = Snapshot();
-            StatusText.Text = $"Sparad: {file.Name} ({Math.Max(1, new FileInfo(file.Path).Length / 1024)} KB)";
+            StatusText.Text = F("Sparad: {0} ({1} KB)", file.Name, Math.Max(1, new FileInfo(file.Path).Length / 1024));
             OpenButton.IsEnabled = RevealButton.IsEnabled = true;
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            StatusText.Text = "Kunde inte spara dokumentet. Är filen öppen i ett annat program?";
+            StatusText.Text = T("Kunde inte spara dokumentet. Är filen öppen i ett annat program?");
         }
         finally
         {
@@ -204,7 +207,7 @@ public sealed partial class GuideWindow : Window
         if (App.Instance?.Settings is not { } settings) return;
         _lookLoading = true;
         var logo = settings.GuideLogo;
-        LogoText.Text = string.IsNullOrEmpty(logo) ? "Ingen logga. Den visas uppe till höger i guiden." : Path.GetFileName(logo);
+        LogoText.Text = string.IsNullOrEmpty(logo) ? T("Ingen logga. Den visas uppe till höger i guiden.") : Path.GetFileName(logo);
         OrganizationBox.Text = settings.GuideOrganization ?? "";
 
         AccentSwatches.Children.Clear();
@@ -220,8 +223,8 @@ public sealed partial class GuideWindow : Window
                 IsEnabled = !Policy.IsLocked(Policy.GuideAccentName),
             };
             if (selected) button.BorderBrush = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-            ToolTipService.SetToolTip(button, label);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, label);
+            ToolTipService.SetToolTip(button, T(label));
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, T(label));
             button.Click += (_, _) =>
             {
                 settings.GuideAccent = hex;
@@ -236,7 +239,7 @@ public sealed partial class GuideWindow : Window
         OrganizationBox.IsEnabled = !Policy.IsLocked(Policy.GuideOrganizationName);
         bool locked = Policy.IsLocked(Policy.GuideLogoName) || Policy.IsLocked(Policy.GuideAccentName) || Policy.IsLocked(Policy.GuideOrganizationName);
         LookPolicyText.Visibility = locked ? Visibility.Visible : Visibility.Collapsed;
-        LookPolicyText.Text = $"Delar av utseendet: {Policy.LockedText.ToLowerInvariant()}.";
+        LookPolicyText.Text = F("Delar av utseendet: {0}.", T(Policy.LockedText).ToLowerInvariant());
         _lookLoading = false;
     }
 
@@ -292,10 +295,10 @@ public sealed partial class GuideWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Stäng guiden?",
-            Content = "Det du har skrivit är inte sparat i något dokument än.",
-            PrimaryButtonText = "Stäng ändå",
-            CloseButtonText = "Avbryt",
+            Title = T("Stäng guiden?"),
+            Content = T("Det du har skrivit är inte sparat i något dokument än."),
+            PrimaryButtonText = T("Stäng ändå"),
+            CloseButtonText = T("Avbryt"),
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;

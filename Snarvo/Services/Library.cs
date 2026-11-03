@@ -19,7 +19,7 @@ namespace Snarvo.Services;
 public static class Library
 {
     const string IdFormat = "yyyyMMdd-HHmmss-fff";
-    static readonly CultureInfo Swedish = CultureInfo.GetCultureInfo("sv-SE");
+    static CultureInfo Swedish => Localization.Culture;
     static string? _lastHash;
 
     public static string Root { get; } = Path.Combine(AppSettings.DataFolder, "Library");

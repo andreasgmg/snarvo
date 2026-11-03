@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Snarvo.Services;
 using Windows.Graphics;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -28,13 +29,13 @@ public sealed class RecorderBar : Window
     public RecorderBar(StepRecorder recorder)
     {
         _recorder = recorder;
-        Title = "Snarvo – Spelar in steg";
+        Title = T("Snarvo – Spelar in steg");
 
         var dot = new Ellipse { Width = 12, Height = 12, Fill = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0xE0, 0x53, 0x3C)), VerticalAlignment = VerticalAlignment.Center };
-        _count = new TextBlock { Text = "Spelar in steg", Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] };
+        _count = new TextBlock { Text = T("Spelar in steg"), Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] };
         _hint = new TextBlock
         {
-            Text = "Klicka som vanligt – varje klick blir ett steg. Det du skriver spelas inte in.",
+            Text = T("Klicka som vanligt – varje klick blir ett steg. Det du skriver spelas inte in."),
             Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"],
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
         };
@@ -42,11 +43,11 @@ public sealed class RecorderBar : Window
         text.Children.Add(_count);
         text.Children.Add(_hint);
 
-        var done = new Button { Content = "Klar – gör guiden", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        var done = new Button { Content = T("Klar – gör guiden"), Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
         done.Click += (_, _) => Finish?.Invoke();
-        var cancel = new Button { Content = "Avbryt" };
+        var cancel = new Button { Content = T("Avbryt") };
         cancel.Click += (_, _) => Cancel?.Invoke();
-        AutomationProperties.SetHelpText(cancel, "Avbryter och raderar de inspelade stegen");
+        AutomationProperties.SetHelpText(cancel, T("Avbryter och raderar de inspelade stegen"));
 
         var grid = new Grid { Padding = new Thickness(16, 10, 12, 10), ColumnSpacing = 12 };
         foreach (var column in new[] { GridLength.Auto, new GridLength(1, GridUnitType.Star), GridLength.Auto, GridLength.Auto })
@@ -82,8 +83,8 @@ public sealed class RecorderBar : Window
     void Update()
     {
         int n = _recorder.Count;
-        _count.Text = n == 1 ? "Spelar in – 1 steg" : $"Spelar in – {n} steg";
+        _count.Text = n == 1 ? T("Spelar in – 1 steg") : F("Spelar in – {0} steg", n);
         if (_recorder.IsFull)
-            _hint.Text = $"Högst {StepRecorder.MaxSteps} steg i en inspelning. Tryck Klar för att göra guiden.";
+            _hint.Text = F("Högst {0} steg i en inspelning. Tryck Klar för att göra guiden.", StepRecorder.MaxSteps);
     }
 }

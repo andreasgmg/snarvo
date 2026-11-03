@@ -70,5 +70,5 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **37. Centrala inställningar för IT:** grupprinciper (ADMX) och register under
       `HKLM\Software\Policies\Snarvo`; låsta inställningar syns som "styrs av din organisation".
 - [x] **38. winget:** manifest och skript så att Snarvo kan installeras med `winget install`.
-- [ ] **39. Engelsk version:** appen följer Windows språk (svenska, annars engelska).
+- [x] **39. Engelsk version:** appen följer Windows språk (svenska, annars engelska).
 - [x] **40. Automatiska tester:** känsliga uppgifter, privat läge och rensning; körs i GitHub Actions.

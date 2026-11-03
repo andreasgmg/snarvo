@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Snarvo.Editor;
 using Snarvo.Services;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -19,7 +20,8 @@ public sealed partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        Title = "Snarvo – Inställningar";
+        Title = T("Snarvo – Inställningar");
+        Localization.Translate(Root);
         WindowHelper.Prepare(this);
         _settings = App.Instance!.Settings;
 
@@ -47,7 +49,7 @@ public sealed partial class SettingsWindow : Window
         if (!Policy.StepRecorderAllowed)
         {
             RecorderHideSwitch.IsEnabled = false;
-            RecorderHideText.Text = $"Stegregistrering är avstängd. {Policy.LockedText}.";
+            RecorderHideText.Text = F("Stegregistrering är avstängd. {0}.", T(Policy.LockedText));
         }
         HideMethodBox.SelectedIndex = (int)_settings.HideMethod;
         ThemeBox.SelectedIndex = (int)_settings.Theme;
@@ -61,7 +63,7 @@ public sealed partial class SettingsWindow : Window
         // An organisation may enforce a period that is not one of the usual choices.
         if (!choices.Contains(_settings.KeepDays)) choices.Add(_settings.KeepDays);
         foreach (var days in choices)
-            KeepDaysBox.Items.Add(new ComboBoxItem { Content = days == 0 ? "Aldrig" : $"Efter {App.DaysText(days)}", Tag = days });
+            KeepDaysBox.Items.Add(new ComboBoxItem { Content = days == 0 ? T("Aldrig") : F("Efter {0}", App.DaysText(days)), Tag = days });
         KeepDaysBox.SelectedIndex = choices.IndexOf(_settings.KeepDays);
 
         Lock(PrivateModeSwitch, PrivateModeText, Policy.PrivateModeName);
@@ -76,8 +78,8 @@ public sealed partial class SettingsWindow : Window
     {
         if (!Policy.IsLocked(policy)) return;
         control.IsEnabled = false;
-        if (!description.Text.EndsWith(Policy.LockedText + "."))
-            description.Text += $" {Policy.LockedText}.";
+        if (!description.Text.EndsWith(T(Policy.LockedText) + "."))
+            description.Text += $" {T(Policy.LockedText)}.";
     }
 
     public void ShowAbout()
@@ -174,10 +176,10 @@ public sealed partial class SettingsWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Återställ färger och storlekar?",
-            Content = "Alla verktyg får tillbaka sina ursprungliga färger och storlekar. Dina mallar och redan ritade bilder ändras inte.",
-            PrimaryButtonText = "Återställ",
-            CloseButtonText = "Avbryt",
+            Title = T("Återställ färger och storlekar?"),
+            Content = T("Alla verktyg får tillbaka sina ursprungliga färger och storlekar. Dina mallar och redan ritade bilder ändras inte."),
+            PrimaryButtonText = T("Återställ"),
+            CloseButtonText = T("Avbryt"),
             DefaultButton = ContentDialogButton.Close,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -192,7 +194,7 @@ public sealed partial class SettingsWindow : Window
         }
         Save();
         Load();
-        ResetStylesText.Text = "Återställt. Öppna editorfönster använder standardvärdena för nästa markering.";
+        ResetStylesText.Text = T("Återställt. Öppna editorfönster använder standardvärdena för nästa markering.");
     }
 
     void OpenFolder_Click(object sender, RoutedEventArgs e)

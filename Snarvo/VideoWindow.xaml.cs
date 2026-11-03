@@ -10,6 +10,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Media.Core;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -29,10 +30,11 @@ public sealed partial class VideoWindow : Window
     {
         _video = video;
         InitializeComponent();
-        Title = $"Snarvo – GIF av {video.Name}";
+        Title = F("Snarvo – GIF av {0}", video.Name);
+        Localization.Translate(Root);
         WindowHelper.Prepare(this);
 
-        foreach (var fps in FrameRates) FpsBox.Items.Add($"{fps} bilder/s");
+        foreach (var fps in FrameRates) FpsBox.Items.Add(F("{0} bilder/s", fps));
         foreach (var width in Widths) WidthBox.Items.Add(width == int.MaxValue ? "Originalstorlek" : $"{width} px");
         FpsBox.SelectedIndex = 1;
         WidthBox.SelectedIndex = 2;
@@ -69,14 +71,14 @@ public sealed partial class VideoWindow : Window
     {
         if (_duration == TimeSpan.Zero)
         {
-            TrimText.Text = "Läser in videon …";
+            TrimText.Text = T("Läser in videon …");
             return;
         }
         TrimText.Text = $"{Format(_start)} – {Format(_end)}  ({(_end - _start).TotalSeconds:0.0} s av {_duration.TotalSeconds:0.0} s)";
 
         int frames = GifMaker.FrameCount(_start, _end, Fps);
         double scale = Math.Min(1.0, (double)MaxWidth / Math.Max(1, _videoWidth));
-        EstimateText.Text = $"{frames} bildrutor, {Math.Round(_videoWidth * scale)} × {Math.Round(_videoHeight * scale)} px";
+        EstimateText.Text = F("{0} bildrutor, {1} × {2} px", frames, Math.Round(_videoWidth * scale), Math.Round(_videoHeight * scale));
     }
 
     void Settings_Changed(object sender, SelectionChangedEventArgs e) => UpdateTexts();
@@ -92,7 +94,7 @@ public sealed partial class VideoWindow : Window
     {
         if (Position <= _start)
         {
-            StatusText.Text = "Slutet måste ligga efter starten.";
+            StatusText.Text = T("Slutet måste ligga efter starten.");
             return;
         }
         _end = Position;
@@ -124,7 +126,7 @@ public sealed partial class VideoWindow : Window
         SaveButton.IsEnabled = false;
         Progress.Value = 0;
         Progress.Visibility = Visibility.Visible;
-        StatusText.Text = "Skapar GIF …";
+        StatusText.Text = T("Skapar GIF …");
         Player.MediaPlayer.Pause();
         try
         {
@@ -133,13 +135,13 @@ public sealed partial class VideoWindow : Window
             await maker.CreateGifAsync(_start, _end, Fps, MaxWidth, file.Path, progress);
 
             _savedGif = file.Path;
-            StatusText.Text = $"Sparad: {file.Name} ({new FileInfo(file.Path).Length / 1024} KB)";
+            StatusText.Text = F("Sparad: {0} ({1} KB)", file.Name, new FileInfo(file.Path).Length / 1024);
             CopyFileButton.IsEnabled = RevealButton.IsEnabled = true;
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            StatusText.Text = "Kunde inte skapa GIF:en.";
+            StatusText.Text = T("Kunde inte skapa GIF:en.");
         }
         finally
         {
@@ -157,7 +159,7 @@ public sealed partial class VideoWindow : Window
         App.Instance?.IgnoreClipboardFor(TimeSpan.FromSeconds(2));
         Clipboard.SetContent(package);
         Clipboard.Flush();
-        StatusText.Text = "GIF:en är kopierad som fil.";
+        StatusText.Text = T("GIF:en är kopierad som fil.");
     }
 
     void Reveal_Click(object sender, RoutedEventArgs e)

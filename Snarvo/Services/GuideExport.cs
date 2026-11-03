@@ -8,6 +8,7 @@ using System.Text;
 using Microsoft.Graphics.Canvas;
 using Microsoft.UI;
 using Windows.Foundation;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo.Services;
 
@@ -35,7 +36,7 @@ public static class GuideExport
     // Wide enough for a sharp full-width image on paper, small enough to keep the files light.
     const int MaxImageWidth = 1600;
 
-    static readonly CultureInfo Swedish = CultureInfo.GetCultureInfo("sv-SE");
+    static CultureInfo Swedish => Localization.Culture;
 
     sealed record Picture(int Width, int Height, byte[] Bgra, byte[] Png);
 
@@ -52,7 +53,7 @@ public static class GuideExport
     static string AltText(Guide guide, int index)
     {
         var text = string.Join(' ', guide.Steps[index].Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        return text.Length == 0 ? $"Skärmbild för steg {index + 1}" : $"Skärmbild för steg {index + 1}: {text}";
+        return text.Length == 0 ? F("Skärmbild för steg {0}", index + 1) : F("Skärmbild för steg {0}: {1}", index + 1, text);
     }
 
     /// <summary>Loads each step's image, shrunk if very wide and flattened onto white like on paper.</summary>
@@ -172,7 +173,7 @@ public static class GuideExport
             // Keep a step's heading, text and image together on one page.
             layout.EnsureRoom(textHeight + height);
             layout.Gap(4);
-            layout.Text($"Steg {i + 1}", 14, bold: true, accent, lineHeight: 18);
+            layout.Text(F("Steg {0}", i + 1), 14, bold: true, accent, lineHeight: 18);
             foreach (var line in lines) layout.Text(line, 11, bold: false, Pdf.Black, lineHeight: 15);
             layout.Gap(6);
             layout.Image(i, width, height);
@@ -229,7 +230,7 @@ public static class GuideExport
             for (int i = 0; i < _pages.Count; i++)
             {
                 if (_pages.Count == 1) break;
-                var label = $"Sida {i + 1} av {_pages.Count}";
+                var label = F("Sida {0} av {1}", i + 1, _pages.Count);
                 float x = (PageWidth - Measure(label, 9, bold: false)) / 2;
                 Pdf.Text(_pages[i], label, x, PageHeight - Margin + 6, 9, bold: false, Pdf.Grey);
             }
@@ -463,7 +464,7 @@ public static class GuideExport
         {
             var (w, h) = LogoSize(logo);
             body.Append(ImageParagraph(pictures.Count + 1, "rIdLogo", "logo.png", (long)(w * 12700), (long)(h * 12700),
-                "Logotyp", frame: false));
+                T("Logotyp"), frame: false));
         }
         body.Append(Paragraph(guide.Title, "Title"));
         body.Append(Paragraph(Subtitle(look), "Subtitle"));
@@ -472,7 +473,7 @@ public static class GuideExport
 
         for (int i = 0; i < guide.Steps.Count; i++)
         {
-            body.Append(Paragraph($"Steg {i + 1}", "Heading1"));
+            body.Append(Paragraph(F("Steg {0}", i + 1), "Heading1"));
             var text = guide.Steps[i].Text.Trim();
             if (text.Length > 0)
                 foreach (var line in Lines(text)) body.Append(Paragraph(line, null, keepWithNext: true));
@@ -538,7 +539,7 @@ public static class GuideExport
             <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
             <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
             <w:docDefaults>
-            <w:rPrDefault><w:rPr><w:rFonts w:ascii="Segoe UI" w:hAnsi="Segoe UI" w:cs="Segoe UI"/><w:sz w:val="22"/><w:lang w:val="sv-SE"/></w:rPr></w:rPrDefault>
+            <w:rPrDefault><w:rPr><w:rFonts w:ascii="Segoe UI" w:hAnsi="Segoe UI" w:cs="Segoe UI"/><w:sz w:val="22"/><w:lang w:val="{{(IsEnglish ? "en-GB" : "sv-SE")}}"/></w:rPr></w:rPrDefault>
             <w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>
             </w:docDefaults>
             <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
@@ -612,7 +613,7 @@ public static class GuideExport
         var html = new StringBuilder();
         html.Append($$"""
             <!doctype html>
-            <html lang="sv">
+            <html lang="{{(IsEnglish ? "en" : "sv")}}">
             <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -651,7 +652,7 @@ public static class GuideExport
 
             """);
         if (logo is not null)
-            html.Append($"""<img class="logo" src="data:image/png;base64,{Convert.ToBase64String(logo.Png)}" width="{logo.Width}" height="{logo.Height}" alt="Logotyp">""").Append('\n');
+            html.Append($"""<img class="logo" src="data:image/png;base64,{Convert.ToBase64String(logo.Png)}" width="{logo.Width}" height="{logo.Height}" alt="{Html(T("Logotyp"))}">""").Append('\n');
         html.Append("</header>\n");
         if (!string.IsNullOrWhiteSpace(guide.Intro))
             html.Append($"""<div class="intro">{Paragraphs(guide.Intro)}</div>""").Append('\n');
@@ -661,10 +662,10 @@ public static class GuideExport
         {
             var p = pictures[i];
             var text = guide.Steps[i].Text.Trim();
-            html.Append($"""<li><h2>Steg {i + 1}</h2>{(text.Length > 0 ? Paragraphs(text) : "")}""");
+            html.Append($"""<li><h2>{Html(F("Steg {0}", i + 1))}</h2>{(text.Length > 0 ? Paragraphs(text) : "")}""");
             html.Append($"""<img class="step" src="data:image/png;base64,{Convert.ToBase64String(p.Png)}" width="{p.Width}" height="{p.Height}" alt="{Html(AltText(guide, i))}" loading="lazy"></li>""").Append('\n');
         }
-        html.Append("</ol>\n<footer>Gjord med Snarvo.</footer>\n</main>\n</body>\n</html>\n");
+        html.Append("</ol>\n<footer>" + Html(T("Gjord med Snarvo.")) + "</footer>\n</main>\n</body>\n</html>\n");
         await File.WriteAllTextAsync(path, html.ToString(), new UTF8Encoding(false));
     }
 

@@ -11,6 +11,7 @@ using Snarvo.Editor;
 using Snarvo.Native;
 using Snarvo.Services;
 using Windows.ApplicationModel.DataTransfer;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo;
 
@@ -72,7 +73,7 @@ public partial class App : Application
         _clipboardDebounce.IsRepeating = false;
         _clipboardDebounce.Tick += async (_, _) => await ImportFromClipboardAsync();
 
-        _tray = new TrayHost(IconPath, $"Snarvo – {HotkeyText} för ny skärmdump");
+        _tray = new TrayHost(IconPath, F("Snarvo – {0} för ny skärmdump", HotkeyText));
         _tray.Clicked += StartCapture;
         _tray.HotkeyPressed += _ => StartCapture();
         _tray.BalloonClicked += () =>
@@ -121,20 +122,20 @@ public partial class App : Application
         else if (!background)
         {
             ShowLibrary();
-            _tray.ShowBalloon("Snarvo körs i systemfältet",
+            _tray.ShowBalloon(T("Snarvo körs i systemfältet"),
                 hotkeyOk
-                    ? $"Tryck {HotkeyText} för en ny skärmdump, eller använd Win+Shift+S som vanligt."
-                    : $"{HotkeyText} används redan av ett annat program. Klicka på ikonen för att ta en skärmdump.");
+                    ? F("Tryck {0} för en ny skärmdump, eller använd Win+Shift+S som vanligt.", HotkeyText)
+                    : F("{0} används redan av ett annat program. Klicka på ikonen för att ta en skärmdump.", HotkeyText));
         }
         else if (!hotkeyOk)
         {
-            _tray.ShowBalloon("Snarvo", $"{HotkeyText} används redan av ett annat program.");
+            _tray.ShowBalloon("Snarvo", F("{0} används redan av ett annat program.", HotkeyText));
         }
 
         // SnipPlus is this app's old name; two copies would both catch every capture.
         if (AppSettings.LegacyAppRunning())
-            _tray.ShowBalloon("Den gamla SnipPlus körs fortfarande",
-                "Avsluta den (högerklicka på dess ikon i systemfältet) och starta om Snarvo, så att bara en av dem tar emot skärmdumparna.");
+            _tray.ShowBalloon(T("Den gamla SnipPlus körs fortfarande"),
+                T("Avsluta den (högerklicka på dess ikon i systemfältet) och starta om Snarvo, så att bara en av dem tar emot skärmdumparna."));
     }
 
     /// <summary>
@@ -169,23 +170,23 @@ public partial class App : Application
 
     IReadOnlyList<TrayMenuItem> BuildTrayMenu() =>
     [
-        new($"Ny skärmdump\t{HotkeyText}", StartCapture),
+        new(F("Ny skärmdump\t{0}", HotkeyText), StartCapture),
         _recorder is null
-            ? new("Spela in steg för en guide …", StartStepRecording, Enabled: Policy.StepRecorderAllowed)
-            : new($"Stoppa inspelningen ({_recorder.Count} steg)", () => _ = FinishRecordingAsync(cancel: false)),
-        new("Öppna bibliotek", ShowLibrary),
-        new("Gör GIF av en inspelning …", () =>
+            ? new(T("Spela in steg för en guide …"), StartStepRecording, Enabled: Policy.StepRecorderAllowed)
+            : new(F("Stoppa inspelningen ({0} steg)", _recorder.Count), () => _ = FinishRecordingAsync(cancel: false)),
+        new(T("Öppna bibliotek"), ShowLibrary),
+        new(T("Gör GIF av en inspelning …"), () =>
         {
             ShowLibrary();
             if (_library is { } library) _ = VideoWindow.PickAndOpenAsync(library);
         }),
         TrayMenuItem.Separator,
-        new(Policy.IsLocked(Policy.PrivateModeName) ? $"Privat läge ({Policy.LockedText.ToLowerInvariant()})" : "Privat läge – spara inte skärmdumpar",
+        new(Policy.IsLocked(Policy.PrivateModeName) ? F("Privat läge ({0})", T(Policy.LockedText).ToLowerInvariant()) : T("Privat läge – spara inte skärmdumpar"),
             TogglePrivateMode, Settings.PrivateMode, Enabled: !Policy.IsLocked(Policy.PrivateModeName)),
-        new("Inställningar …", () => ShowSettings()),
+        new(T("Inställningar …"), () => ShowSettings()),
         TrayMenuItem.Separator,
-        new("Om Snarvo", () => ShowSettings(about: true)),
-        new("Avsluta Snarvo", () => _ = ExitAsync()),
+        new(T("Om Snarvo"), () => ShowSettings(about: true)),
+        new(T("Avsluta Snarvo"), () => _ = ExitAsync()),
     ];
 
     SettingsWindow? _settingsWindow;
@@ -204,13 +205,13 @@ public partial class App : Application
         }
         if (!Policy.StepRecorderAllowed)
         {
-            _tray?.ShowBalloon("Stegregistrering är avstängd", "Din organisation har stängt av stegregistrering i Snarvo.");
+            _tray?.ShowBalloon(T("Stegregistrering är avstängd"), T("Din organisation har stängt av stegregistrering i Snarvo."));
             return;
         }
         var recorder = new StepRecorder(Settings.PrivateMode, Settings.StepRecorderHideSensitive, Settings.HideMethod, ToolStyles);
         if (!recorder.Start())
         {
-            _tray?.ShowBalloon("Snarvo", "Kunde inte starta stegregistreringen.");
+            _tray?.ShowBalloon("Snarvo", T("Kunde inte starta stegregistreringen."));
             return;
         }
         _recorder = recorder;
@@ -260,7 +261,7 @@ public partial class App : Application
             var steps = await recorder.StopAsync();
             if (steps.Count == 0)
             {
-                _tray?.ShowBalloon("Inga steg spelades in", "Klicka i det program du vill visa medan inspelningen pågår.");
+                _tray?.ShowBalloon(T("Inga steg spelades in"), T("Klicka i det program du vill visa medan inspelningen pågår."));
                 return;
             }
             var guide = new GuideWindow(steps.Select(s => s.Id), steps.ToDictionary(s => s.Id, s => s.Text),
@@ -284,7 +285,7 @@ public partial class App : Application
         WindowHelper.BringToFront(_settingsWindow);
     }
 
-    public static string DaysText(int days) => days == 1 ? "1 dag" : $"{days} dagar";
+    public static string DaysText(int days) => days == 1 ? T("1 dag") : F("{0} dagar", days);
 
     /// <summary>
     /// Changes how long captures are kept. Shortening it deletes old captures straight away,
@@ -299,12 +300,13 @@ public partial class App : Application
             var dialog = new ContentDialog
             {
                 XamlRoot = root,
-                Title = old == 0 ? "Slå på automatisk rensning?" : old == 1 ? "Radera 1 skärmdump?" : $"Radera {old} skärmdumpar?",
-                Content = (old == 0 ? "" : $"{(old == 1 ? "1 skärmdump är" : $"{old} skärmdumpar är")} äldre än {DaysText(days)} och raderas direkt. ") +
-                          $"Därefter raderas skärmdumpar automatiskt när de blir {DaysText(days)} gamla. " +
-                          "Bilder som är öppna i editorn raderas först när de har stängts. Det går inte att ångra.",
-                PrimaryButtonText = old == 0 ? "Slå på" : "Radera och slå på",
-                CloseButtonText = "Avbryt",
+                Title = old == 0 ? T("Slå på automatisk rensning?") : old == 1 ? T("Radera 1 skärmdump?") : F("Radera {0} skärmdumpar?", old),
+                Content = (old == 0 ? "" : (old == 1 ? F("1 skärmdump är äldre än {0} och raderas direkt.", DaysText(days))
+                                                     : F("{0} skärmdumpar är äldre än {1} och raderas direkt.", old, DaysText(days))) + " ") +
+                          F("Därefter raderas skärmdumpar automatiskt när de blir {0} gamla.", DaysText(days)) + " " +
+                          T("Bilder som är öppna i editorn raderas först när de har stängts. Det går inte att ångra."),
+                PrimaryButtonText = old == 0 ? T("Slå på") : T("Radera och slå på"),
+                CloseButtonText = T("Avbryt"),
                 DefaultButton = ContentDialogButton.Close,
             };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return false;
@@ -340,10 +342,10 @@ public partial class App : Application
         Settings.PrivateMode = !Settings.PrivateMode;
         SaveSettings();
         Library.NotifyChanged(); // the library window shows the mode
-        _tray?.ShowBalloon(Settings.PrivateMode ? "Privat läge på" : "Privat läge av",
+        _tray?.ShowBalloon(Settings.PrivateMode ? T("Privat läge på") : T("Privat läge av"),
             Settings.PrivateMode
-                ? "Nya skärmdumpar öppnas i editorn och raderas när du stänger den. De sparas inte i biblioteket."
-                : "Nya skärmdumpar sparas i biblioteket igen.");
+                ? T("Nya skärmdumpar öppnas i editorn och raderas när du stänger den. De sparas inte i biblioteket.")
+                : T("Nya skärmdumpar sparas i biblioteket igen."));
     }
 
     /// <summary>Saves settings shortly, so dragging a slider does not write the file on every step.</summary>
@@ -377,7 +379,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             Log(ex);
-            _tray?.ShowBalloon("Snarvo", "Kunde inte starta Skärmklippverktyget.");
+            _tray?.ShowBalloon("Snarvo", T("Kunde inte starta Skärmklippverktyget."));
         }
     }
 
@@ -429,7 +431,7 @@ public partial class App : Application
         else
         {
             _lastCaptureId = id;
-            _tray?.ShowBalloon("Skärmdumpen sparades i Snarvo", "Klicka här för att redigera den.");
+            _tray?.ShowBalloon(T("Skärmdumpen sparades i Snarvo"), T("Klicka här för att redigera den."));
         }
     }
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: EUPL-1.2
 
 using System.Runtime.InteropServices;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo.Native;
 
@@ -85,19 +86,19 @@ internal static class Accessibility
     static string Instruction(string name, int role)
     {
         if (name.Length == 0) return "";
-        var quoted = $"”{name}”";
+        var quoted = IsEnglish ? $"“{name}”" : $"”{name}”";
         return role switch
         {
-            ROLE_PUSHBUTTON or ROLE_SPLITBUTTON or ROLE_BUTTONDROPDOWN or ROLE_BUTTONMENU => $"Klicka på knappen {quoted}.",
-            ROLE_MENUITEM => $"Välj {quoted} i menyn.",
-            ROLE_LINK => $"Klicka på länken {quoted}.",
-            ROLE_PAGETAB => $"Öppna fliken {quoted}.",
-            ROLE_CHECKBUTTON => $"Kryssa i {quoted}.",
-            ROLE_RADIOBUTTON => $"Välj {quoted}.",
-            ROLE_TEXT => $"Klicka i fältet {quoted}.",
-            ROLE_COMBOBOX => $"Öppna listan {quoted}.",
-            ROLE_LISTITEM or ROLE_OUTLINEITEM => $"Välj {quoted}.",
-            _ => $"Klicka på {quoted}.",
+            ROLE_PUSHBUTTON or ROLE_SPLITBUTTON or ROLE_BUTTONDROPDOWN or ROLE_BUTTONMENU => F("Klicka på knappen {0}.", quoted),
+            ROLE_MENUITEM => F("Välj {0} i menyn.", quoted),
+            ROLE_LINK => F("Klicka på länken {0}.", quoted),
+            ROLE_PAGETAB => F("Öppna fliken {0}.", quoted),
+            ROLE_CHECKBUTTON => F("Kryssa i {0}.", quoted),
+            ROLE_RADIOBUTTON => F("Välj {0}.", quoted),
+            ROLE_TEXT => F("Klicka i fältet {0}.", quoted),
+            ROLE_COMBOBOX => F("Öppna listan {0}.", quoted),
+            ROLE_LISTITEM or ROLE_OUTLINEITEM => F("Välj {0}.", quoted),
+            _ => F("Klicka på {0}.", quoted),
         };
     }
 

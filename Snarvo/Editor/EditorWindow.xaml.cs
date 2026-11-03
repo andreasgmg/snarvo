@@ -28,6 +28,7 @@ using Windows.System;
 using Windows.UI;
 using Windows.UI.Core;
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;
+using static Snarvo.Services.Localization;
 
 namespace Snarvo.Editor;
 
@@ -112,6 +113,7 @@ public sealed partial class EditorWindow : Window
     {
         _doc = document;
         InitializeComponent();
+        Localization.Translate(Root);
 
         UpdateTitle();
         WindowHelper.Prepare(this);
@@ -119,7 +121,7 @@ public sealed partial class EditorWindow : Window
         _statusTimer = DispatcherQueue.CreateTimer();
         _statusTimer.Interval = TimeSpan.FromSeconds(3);
         _statusTimer.IsRepeating = false;
-        _statusTimer.Tick += (_, _) => HintText.Text = CurrentToolInfo.Hint;
+        _statusTimer.Tick += (_, _) => HintText.Text = CurrentHint;
 
         // Holding still at the end of a pen stroke turns it into the shape it resembles.
         _snapTimer = DispatcherQueue.CreateTimer();
@@ -165,6 +167,7 @@ public sealed partial class EditorWindow : Window
     }
 
     ToolInfo CurrentToolInfo => Tools.First(t => t.Tool == _tool);
+    string CurrentHint => T(CurrentToolInfo.Hint);
     float Zoom => Scroller.ZoomFactor;
     float Tolerance => 5f / Zoom;
     double RasterScale => Root.XamlRoot?.RasterizationScale ?? WindowHelper.Scale(this);
@@ -185,8 +188,8 @@ public sealed partial class EditorWindow : Window
                 Padding = new Thickness(0),
                 Content = content,
             };
-            ToolTipService.SetToolTip(button, $"{info.Name} ({info.Key})");
-            AutomationProperties.SetName(button, info.Name);
+            ToolTipService.SetToolTip(button, $"{T(info.Name)} ({info.Key})");
+            AutomationProperties.SetName(button, T(info.Name));
             button.Click += (_, _) => SetTool(info.Tool);
             ToolRail.Children.Add(button);
             _toolButtons[info.Tool] = button;
@@ -255,7 +258,7 @@ public sealed partial class EditorWindow : Window
         _tool = tool;
         foreach (var (key, button) in _toolButtons) button.IsChecked = key == tool;
         if (tool != Tool.Select) Select(null);
-        HintText.Text = CurrentToolInfo.Hint;
+        HintText.Text = CurrentHint;
         Host.SetCursor(DefaultCursor());
         UpdateStylePanel();
     }
@@ -304,10 +307,10 @@ public sealed partial class EditorWindow : Window
         ColorButton.Visibility = ToVisibility(hasStyle && kind is not (Tool.Blur or Tool.Pixelate or Tool.Spotlight));
         ThicknessPanel.Visibility = ToVisibility(hasStyle && kind is Tool.Arrow or Tool.Line or Tool.Rectangle or Tool.Ellipse
             or Tool.Pen or Tool.Magnify or Tool.Blur or Tool.Pixelate);
-        ThicknessLabel.Text = kind switch { Tool.Blur => "Styrka", Tool.Pixelate => "Blockstorlek", _ => "Tjocklek" };
+        ThicknessLabel.Text = T(kind switch { Tool.Blur => "Styrka", Tool.Pixelate => "Blockstorlek", _ => "Tjocklek" });
         FontPanel.Visibility = ToVisibility(hasStyle && kind is Tool.Text or Tool.Callout or Tool.Step);
         LabelToggle.Visibility = ToVisibility(hasStyle && kind == Tool.Text);
-        FontLabel.Text = kind == Tool.Step ? "Storlek" : "Textstorlek";
+        FontLabel.Text = T(kind == Tool.Step ? "Storlek" : "Textstorlek");
         AutoTrimButton.Visibility = ToVisibility(_selected is null && kind == Tool.Crop);
         if (Root.ActualWidth > 0) UpdateCompactToolbar(Root.ActualWidth);
         if (style is null) return;
@@ -357,7 +360,7 @@ public sealed partial class EditorWindow : Window
         ColorButton.Flyout.Hide();
         _pickingColor = true;
         Host.SetCursor(InputSystemCursorShape.Cross);
-        HintText.Text = "Klicka i bilden för att hämta en färg. Esc avbryter.";
+        HintText.Text = T("Klicka i bilden för att hämta en färg. Esc avbryter.");
     }
 
     /// <summary>Takes the colour under the pointer as it looks on screen, annotations included.</summary>
@@ -387,7 +390,7 @@ public sealed partial class EditorWindow : Window
         App.Instance?.IgnoreClipboardFor(TimeSpan.FromSeconds(2));
         Clipboard.SetContent(package);
         Clipboard.Flush();
-        ShowStatus($"Färgen {hex} är vald och kopierad.");
+        ShowStatus(F("Färgen {0} är vald och kopierad.", hex));
     }
 
     void Picker_ColorChanged(ColorPicker sender, ColorChangedEventArgs args)
@@ -453,30 +456,30 @@ public sealed partial class EditorWindow : Window
         if (settings is null) return;
 
         if (settings.Presets.Count == 0)
-            menu.Items.Add(new MenuFlyoutItem { Text = "Inga mallar än", IsEnabled = false });
+            menu.Items.Add(new MenuFlyoutItem { Text = T("Inga mallar än"), IsEnabled = false });
 
         foreach (var preset in settings.Presets)
         {
             bool isDefault = preset.Name == settings.DefaultPreset;
-            var sub = new MenuFlyoutSubItem { Text = isDefault ? $"{preset.Name}  (standard)" : preset.Name };
+            var sub = new MenuFlyoutSubItem { Text = isDefault ? F("{0}  (standard)", preset.Name) : preset.Name };
 
-            var apply = new MenuFlyoutItem { Text = "Använd" };
+            var apply = new MenuFlyoutItem { Text = T("Använd") };
             apply.Click += (_, _) => ApplyPreset(preset);
-            var makeDefault = new ToggleMenuFlyoutItem { Text = "Standard för nya skärmdumpar", IsChecked = isDefault };
+            var makeDefault = new ToggleMenuFlyoutItem { Text = T("Standard för nya skärmdumpar"), IsChecked = isDefault };
             makeDefault.Click += (_, _) =>
             {
                 settings.DefaultPreset = isDefault ? null : preset.Name;
                 App.Instance?.SaveSettingsSoon();
                 RebuildPresetsMenu();
             };
-            var delete = new MenuFlyoutItem { Text = "Ta bort" };
+            var delete = new MenuFlyoutItem { Text = T("Ta bort") };
             delete.Click += (_, _) =>
             {
                 settings.Presets.Remove(preset);
                 if (isDefault) settings.DefaultPreset = null;
                 App.Instance?.SaveSettingsSoon();
                 RebuildPresetsMenu();
-                ShowStatus($"Mallen \"{preset.Name}\" togs bort.");
+                ShowStatus(F("Mallen \"{0}\" togs bort.", preset.Name));
             };
 
             sub.Items.Add(apply);
@@ -487,7 +490,7 @@ public sealed partial class EditorWindow : Window
         }
 
         menu.Items.Add(new MenuFlyoutSeparator());
-        var save = new MenuFlyoutItem { Text = "Spara nuvarande stil som mall…", Icon = new FontIcon { Glyph = "" } };
+        var save = new MenuFlyoutItem { Text = T("Spara nuvarande stil som mall…"), Icon = new FontIcon { Glyph = "" } };
         save.Click += (_, _) => _ = SavePresetAsync();
         menu.Items.Add(save);
     }
@@ -504,7 +507,7 @@ public sealed partial class EditorWindow : Window
         _dirty = _unshared = true;
         UpdateBoardSize();
         UpdateStylePanel();
-        ShowStatus($"Mallen \"{preset.Name}\" används. Nya annoteringar får dess stil.");
+        ShowStatus(F("Mallen \"{0}\" används. Nya annoteringar får dess stil.", preset.Name));
     }
 
     async Task SavePresetAsync()
@@ -512,11 +515,11 @@ public sealed partial class EditorWindow : Window
         var settings = Settings;
         if (settings is null) return;
 
-        var name = new TextBox { PlaceholderText = "T.ex. Supportärende", Text = $"Mall {settings.Presets.Count + 1}" };
+        var name = new TextBox { PlaceholderText = T("T.ex. Supportärende"), Text = F("Mall {0}", settings.Presets.Count + 1) };
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Spara som mall",
+            Title = T("Spara som mall"),
             Content = new StackPanel
             {
                 Spacing = 8,
@@ -524,14 +527,14 @@ public sealed partial class EditorWindow : Window
                 {
                     new TextBlock
                     {
-                        Text = "Mallen sparar färg och storlek för alla verktyg, plus ram, rundade hörn och skugga.",
+                        Text = T("Mallen sparar färg och storlek för alla verktyg, plus ram, rundade hörn och skugga."),
                         TextWrapping = TextWrapping.Wrap,
                     },
                     name,
                 },
             },
-            PrimaryButtonText = "Spara",
-            CloseButtonText = "Avbryt",
+            PrimaryButtonText = T("Spara"),
+            CloseButtonText = T("Avbryt"),
             DefaultButton = ContentDialogButton.Primary,
         };
         name.Loaded += (_, _) => name.SelectAll();
@@ -548,7 +551,7 @@ public sealed partial class EditorWindow : Window
         });
         App.Instance?.SaveSettingsSoon();
         RebuildPresetsMenu();
-        ShowStatus($"Mallen \"{title}\" är sparad.");
+        ShowStatus(F("Mallen \"{0}\" är sparad.", title));
     }
 
     // ───────────────────────────── effects ─────────────────────────────
@@ -1132,7 +1135,7 @@ public sealed partial class EditorWindow : Window
 
         if (right - left <= 1 || bottom - top <= 1)
         {
-            ShowStatus("Bilden har bara en färg – det finns inget att beskära fram.");
+            ShowStatus(T("Bilden har bara en färg – det finns inget att beskära fram."));
             return;
         }
 
@@ -1143,12 +1146,12 @@ public sealed partial class EditorWindow : Window
         keep = Geo.Intersect(keep, image);
         if (keep.Width >= width - 1 && keep.Height >= height - 1)
         {
-            ShowStatus("Det finns inga enfärgade kanter att beskära bort.");
+            ShowStatus(T("Det finns inga enfärgade kanter att beskära bort."));
             return;
         }
 
         ApplyCrop(keep);
-        ShowStatus($"Beskar bort kanterna: {width} × {height} → {(int)Math.Round(keep.Width)} × {(int)Math.Round(keep.Height)} px. Ctrl+Z ångrar.");
+        ShowStatus(F("Beskar bort kanterna: {0} × {1} → {2} × {3} px. Ctrl+Z ångrar.", width, height, (int)Math.Round(keep.Width), (int)Math.Round(keep.Height)));
     }
 
     /// <summary>Removes a horizontal or vertical strip and joins the remaining parts.</summary>
@@ -1273,7 +1276,7 @@ public sealed partial class EditorWindow : Window
             var red = Color.FromArgb(255, 0xE5, 0x39, 0x35);
             ds.FillRectangle(band, Geo.WithAlpha(red, 100));
             ds.DrawRectangle(band, red, 1.5f / z, Strokes.Dash);
-            DrawLabel(ds, $"Tar bort {(int)Math.Round(rows ? r.Height : r.Width)} px", band.TopLeft(), z);
+            DrawLabel(ds, F("Tar bort {0} px", (int)Math.Round(rows ? r.Height : r.Width)), band.TopLeft(), z);
         }
     }
 
@@ -1379,7 +1382,7 @@ public sealed partial class EditorWindow : Window
                 {
                     _pickingColor = false;
                     Host.SetCursor(DefaultCursor());
-                    HintText.Text = CurrentToolInfo.Hint;
+                    HintText.Text = CurrentHint;
                 }
                 else if (_selected is not null) Select(null);
                 else if (_tool is Tool.Crop or Tool.CutOut) SetTool(Tool.Select);
@@ -1517,9 +1520,9 @@ public sealed partial class EditorWindow : Window
     {
         var size = CurrentExportSize;
         var scaled = Vector2.Round(Renderer.FinalSize(_doc) * size.ScaleFor(Renderer.FinalSize(_doc).X));
-        ExportSizeMenu.Text = $"Storlek: {(size == ExportSize.Original ? "100 %" : size.Label().Replace(" bred", ""))}";
+        ExportSizeMenu.Text = F("Storlek: {0}", size == ExportSize.Original ? "100 %" : size.ShortLabel());
         ToolTipService.SetToolTip(ExportSizeMenu,
-            $"Storlek när bilden kopieras, exporteras eller dras ut: {size.Label()} ({scaled.X:0} × {scaled.Y:0} px)");
+            F("Storlek när bilden kopieras, exporteras eller dras ut: {0} ({1:0} × {2:0} px)", size.Label(), scaled.X, scaled.Y));
         foreach (var item in ExportSizeMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Text == size.Label();
     }
@@ -1530,15 +1533,15 @@ public sealed partial class EditorWindow : Window
     {
         var folder = Settings?.QuickSaveFolder;
         bool hasFolder = folder is not null && Directory.Exists(folder);
-        QuickSaveItem.Text = hasFolder ? $"Spara i {Path.GetFileName(folder!.TrimEnd('\\'))}" : "Spara i mapp …";
-        ToolTipService.SetToolTip(QuickSaveItem, hasFolder ? folder : "Välj en mapp en gång – sedan sparas bilder dit direkt");
+        QuickSaveItem.Text = hasFolder ? F("Spara i {0}", Path.GetFileName(folder!.TrimEnd('\\'))) : T("Spara i mapp …");
+        ToolTipService.SetToolTip(QuickSaveItem, hasFolder ? folder : T("Välj en mapp en gång – sedan sparas bilder dit direkt"));
         OpenQuickSaveFolderItem.IsEnabled = hasFolder;
         CopyOnCloseItem.IsChecked = Settings?.CopyOnClose ?? true;
         KeepItem.Visibility = ToVisibility(Library.IsTemporary(_doc.Id));
     }
 
     void UpdateTitle() => Title = Library.IsTemporary(_doc.Id)
-        ? $"Snarvo – {Library.DisplayName(_doc.Id)} – privat, raderas när fönstret stängs"
+        ? F("Snarvo – {0} – privat, raderas när fönstret stängs", Library.DisplayName(_doc.Id))
         : $"Snarvo – {Library.DisplayName(_doc.Id)}";
 
     /// <summary>Private mode: this capture should stay after all.</summary>
@@ -1550,12 +1553,12 @@ public sealed partial class EditorWindow : Window
             _dirty = true; // so the edits so far are written when the window closes
             UpdateTitle();
             UpdateShareMenu();
-            ShowStatus("Bilden sparas i biblioteket när du stänger fönstret.");
+            ShowStatus(T("Bilden sparas i biblioteket när du stänger fönstret."));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte flytta bilden till biblioteket.");
+            ShowStatus(T("Kunde inte flytta bilden till biblioteket."));
         }
     }
 
@@ -1565,8 +1568,8 @@ public sealed partial class EditorWindow : Window
         settings.CopyOnClose = CopyOnCloseItem.IsChecked;
         App.Instance?.SaveSettingsSoon();
         ShowStatus(settings.CopyOnClose
-            ? "Bilden kopieras automatiskt när du stänger editorn."
-            : "Bilden kopieras inte längre när du stänger editorn.");
+            ? T("Bilden kopieras automatiskt när du stänger editorn.")
+            : T("Bilden kopieras inte längre när du stänger editorn."));
     }
 
     void QuickSave_Click(object sender, RoutedEventArgs e) => _ = QuickSaveAsync(chooseFolder: false);
@@ -1604,7 +1607,7 @@ public sealed partial class EditorWindow : Window
             UpdateShareMenu();
             if (chooseFolder)
             {
-                ShowStatus($"Bilder sparas nu i {folder}.");
+                ShowStatus(F("Bilder sparas nu i {0}.", folder));
                 return;
             }
         }
@@ -1612,18 +1615,18 @@ public sealed partial class EditorWindow : Window
         try
         {
             var stamp = Library.CreatedAt(_doc.Id);
-            var name = $"Skärmdump {(stamp == DateTime.MinValue ? DateTime.Now : stamp):yyyy-MM-dd HH.mm.ss}";
+            var name = $"{T("Skärmdump")} {(stamp == DateTime.MinValue ? DateTime.Now : stamp):yyyy-MM-dd HH.mm.ss}";
             var path = Path.Combine(folder, name + ".png");
             for (int n = 2; File.Exists(path); n++) path = Path.Combine(folder, $"{name} ({n}).png");
 
             using var image = RenderForSharing();
             await image.SaveAsync(path, CanvasBitmapFileFormat.Png);
-            ShowStatus($"Sparad som {Path.GetFileName(path)} i {folder}.");
+            ShowStatus(F("Sparad som {0} i {1}.", Path.GetFileName(path), folder));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte spara i mappen.");
+            ShowStatus(T("Kunde inte spara i mappen."));
         }
     }
 
@@ -1644,12 +1647,12 @@ public sealed partial class EditorWindow : Window
             App.Instance?.IgnoreClipboardFor(TimeSpan.FromSeconds(2));
             Clipboard.SetContent(package);
             Clipboard.Flush();
-            ShowStatus("Bilden är kopierad som fil – klistra in i Utforskaren eller som bilaga.");
+            ShowStatus(T("Bilden är kopierad som fil – klistra in i Utforskaren eller som bilaga."));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte kopiera som fil.");
+            ShowStatus(T("Kunde inte kopiera som fil."));
         }
     }
 
@@ -1673,12 +1676,12 @@ public sealed partial class EditorWindow : Window
             App.Instance?.IgnoreClipboardFor(TimeSpan.FromSeconds(2));
             Clipboard.SetContent(package);
             Clipboard.Flush();
-            if (!quiet) ShowStatus($"Bilden är kopierad ({size}) – klistra in den var du vill.");
+            if (!quiet) ShowStatus(F("Bilden är kopierad ({0}) – klistra in den var du vill.", size));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            if (!quiet) ShowStatus("Kunde inte kopiera bilden.");
+            if (!quiet) ShowStatus(T("Kunde inte kopiera bilden."));
         }
     }
 
@@ -1689,12 +1692,12 @@ public sealed partial class EditorWindow : Window
         {
             await _doc.SaveAsync();
             _dirty = false;
-            ShowStatus("Sparad i biblioteket.");
+            ShowStatus(T("Sparad i biblioteket."));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte spara.");
+            ShowStatus(T("Kunde inte spara."));
         }
     }
 
@@ -1719,10 +1722,10 @@ public sealed partial class EditorWindow : Window
         var picker = new FileSavePicker
         {
             SuggestedStartLocation = PickerLocationId.PicturesLibrary,
-            SuggestedFileName = $"Skärmdump {_doc.Id}",
+            SuggestedFileName = $"{T("Skärmdump")} {_doc.Id}",
         };
-        picker.FileTypeChoices.Add("PNG-bild", new List<string> { ".png" });
-        picker.FileTypeChoices.Add("JPEG-bild", new List<string> { ".jpg" });
+        picker.FileTypeChoices.Add(T("PNG-bild"), new List<string> { ".png" });
+        picker.FileTypeChoices.Add(T("JPEG-bild"), new List<string> { ".jpg" });
         WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHelper.Handle(this));
 
         var file = await picker.PickSaveFileAsync();
@@ -1735,12 +1738,12 @@ public sealed partial class EditorWindow : Window
             using var stream = await file.OpenAsync(FileAccessMode.ReadWrite);
             stream.Size = 0;
             await image.SaveAsync(stream, jpeg ? CanvasBitmapFileFormat.Jpeg : CanvasBitmapFileFormat.Png, 0.92f);
-            ShowStatus($"Exporterad till {file.Path}");
+            ShowStatus(F("Exporterad till {0}", file.Path));
         }
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte exportera bilden.");
+            ShowStatus(T("Kunde inte exportera bilden."));
         }
     }
 
@@ -1761,13 +1764,13 @@ public sealed partial class EditorWindow : Window
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Textigenkänningen misslyckades.");
+            ShowStatus(T("Textigenkänningen misslyckades."));
             return;
         }
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            await ShowMessageAsync("Textigenkänning", "Ingen text hittades i bilden.");
+            await ShowMessageAsync(T("Textigenkänning"), T("Ingen text hittades i bilden."));
             return;
         }
 
@@ -1784,10 +1787,10 @@ public sealed partial class EditorWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Text i bilden",
+            Title = T("Text i bilden"),
             Content = box,
-            PrimaryButtonText = "Kopiera",
-            CloseButtonText = "Stäng",
+            PrimaryButtonText = T("Kopiera"),
+            CloseButtonText = T("Stäng"),
             DefaultButton = ContentDialogButton.Primary,
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
@@ -1797,7 +1800,7 @@ public sealed partial class EditorWindow : Window
             App.Instance?.IgnoreClipboardFor(TimeSpan.FromSeconds(2));
             Clipboard.SetContent(package);
             Clipboard.Flush();
-            ShowStatus("Texten är kopierad.");
+            ShowStatus(T("Texten är kopierad."));
         }
     }
 
@@ -1820,18 +1823,18 @@ public sealed partial class EditorWindow : Window
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte söka efter känslig information.");
+            ShowStatus(T("Kunde inte söka efter känslig information."));
             return;
         }
 
         var added = HideHits(hits);
         if (added.Count == 0)
         {
-            ShowStatus(hits.Count == 0 ? "Hittade ingen känslig information." : "Allt känsligt är redan dolt.");
+            ShowStatus(hits.Count == 0 ? T("Hittade ingen känslig information.") : T("Allt känsligt är redan dolt."));
             return;
         }
-        var summary = string.Join(", ", added.GroupBy(h => h.Kind).Select(g => $"{g.Count()} {g.Key}"));
-        ShowStatus($"Dolde {added.Count} uppgifter: {summary}. Ctrl+Z ångrar, eller markera och ta bort enskilda.");
+        var summary = string.Join(", ", added.GroupBy(h => h.Kind).Select(g => $"{g.Count()} {T(g.Key)}"));
+        ShowStatus(F("Dolde {0} uppgifter: {1}. Ctrl+Z ångrar, eller markera och ta bort enskilda.", added.Count, summary));
     }
 
     // OCR of the current capture, reused for clicks on text until the capture is cropped or cut.
@@ -1875,7 +1878,7 @@ public sealed partial class EditorWindow : Window
             }
             if (found is not { } text)
             {
-                ShowStatus("Ingen text där du klickade. Dra för att markera ett område.");
+                ShowStatus(T("Ingen text där du klickade. Dra för att markera ett område."));
                 return;
             }
 
@@ -1905,8 +1908,8 @@ public sealed partial class EditorWindow : Window
     async Task HideWordsAsync()
     {
         CommitTextEdit();
-        var box = new TextBox { Text = _lastHiddenTerms, PlaceholderText = "T.ex. Anna Svensson, Acme AB", Width = 400 };
-        AutomationProperties.SetName(box, "Ord eller namn");
+        var box = new TextBox { Text = _lastHiddenTerms, PlaceholderText = T("T.ex. Anna Svensson, Acme AB"), Width = 400 };
+        AutomationProperties.SetName(box, T("Ord eller namn"));
         box.Loaded += (_, _) =>
         {
             box.Focus(FocusState.Programmatic);
@@ -1915,7 +1918,7 @@ public sealed partial class EditorWindow : Window
         var panel = new StackPanel { Spacing = 10 };
         panel.Children.Add(new TextBlock
         {
-            Text = "Alla ställen där det står i bilden döljs. Skilj flera ord eller namn åt med komma.",
+            Text = T("Alla ställen där det står i bilden döljs. Skilj flera ord eller namn åt med komma."),
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 400,
         });
@@ -1923,10 +1926,10 @@ public sealed partial class EditorWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Dölj ord eller namn",
+            Title = T("Dölj ord eller namn"),
             Content = panel,
-            PrimaryButtonText = "Dölj",
-            CloseButtonText = "Avbryt",
+            PrimaryButtonText = T("Dölj"),
+            CloseButtonText = T("Avbryt"),
             DefaultButton = ContentDialogButton.Primary,
         };
         if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
@@ -1953,20 +1956,20 @@ public sealed partial class EditorWindow : Window
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte läsa texten i bilden.");
+            ShowStatus(T("Kunde inte läsa texten i bilden."));
             return;
         }
 
         var quoted = string.Join(", ", terms.Select(t => $"\"{t}\""));
         if (hits.Count == 0)
         {
-            ShowStatus($"Hittade inte {quoted} i bilden. Texten läses med OCR – prova gärna en kortare del, t.ex. bara efternamnet.");
+            ShowStatus(F("Hittade inte {0} i bilden. Texten läses med OCR – prova gärna en kortare del, t.ex. bara efternamnet.", quoted));
             return;
         }
         var added = HideHits(hits);
         ShowStatus(added.Count == 0
-            ? $"{quoted} är redan dolt överallt."
-            : $"Dolde {added.Count} {(added.Count == 1 ? "ställe" : "ställen")} med {quoted}. Ctrl+Z ångrar.");
+            ? F("{0} är redan dolt överallt.", quoted)
+            : (added.Count == 1 ? F("Dolde 1 ställe med {0}. Ctrl+Z ångrar.", quoted) : F("Dolde {0} ställen med {1}. Ctrl+Z ångrar.", added.Count, quoted)));
     }
 
     /// <summary>
@@ -1999,7 +2002,7 @@ public sealed partial class EditorWindow : Window
         catch (Exception ex)
         {
             App.Log(ex);
-            ShowStatus("Kunde inte läsa texten i bilden.");
+            ShowStatus(T("Kunde inte läsa texten i bilden."));
             return;
         }
         if (recognized is null)
@@ -2033,14 +2036,14 @@ public sealed partial class EditorWindow : Window
 
         if (added == 0)
         {
-            ShowStatus(existing.Count > 0 ? "Texten är redan förenklad." : "Hittade ingen text att förenkla.");
+            ShowStatus(existing.Count > 0 ? T("Texten är redan förenklad.") : T("Hittade ingen text att förenkla."));
             return;
         }
         MarkChanged(before!);
         // Ready to click a block away: the text that matters should stay readable.
         SetTool(Tool.Select);
         Select(null);
-        ShowStatus($"Förenklade {added} textrader. Klicka på ett block och tryck Delete för att visa texten igen. Ctrl+Z ångrar alltihop.");
+        ShowStatus(F("Förenklade {0} textrader. Klicka på ett block och tryck Delete för att visa texten igen. Ctrl+Z ångrar alltihop.", added));
     }
 
     /// <summary>Recognised words grouped per line, split where a wide gap separates columns.</summary>
@@ -2098,8 +2101,8 @@ public sealed partial class EditorWindow : Window
     static Color Mix(Color a, Color b, float t) => Color.FromArgb(255,
         (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
-    Task ShowNoOcrLanguageAsync() => ShowMessageAsync("Textigenkänning",
-        "Inget språk för textigenkänning (OCR) är installerat. Lägg till ett språk under Inställningar → Tid och språk.");
+    Task ShowNoOcrLanguageAsync() => ShowMessageAsync(T("Textigenkänning"),
+        T("Inget språk för textigenkänning (OCR) är installerat. Lägg till ett språk under Inställningar → Tid och språk."));
 
     async Task ShowMessageAsync(string title, string message)
     {
