@@ -1,0 +1,113 @@
+# Builds Snarvo on every push and pull request.
+# Pushing a version tag (git tag v1.0.0 && git push origin v1.0.0) also publishes a GitHub release
+# with ready-to-run zip files and their SHA-256 checksums.
+#
+# Code signing through SignPath Foundation switches on by itself once the repository has the
+# variable SIGNPATH_ORGANIZATION_ID and the secret SIGNPATH_API_TOKEN (see CODE_SIGNING.md).
+
+name: Bygg
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x64, ARM64]
+    env:
+      SIGNING: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && startsWith(github.ref, 'refs/tags/v') }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Versionsnummer
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') { $v = $env:GITHUB_REF_NAME.Substring(1) }
+          else { $v = ([xml](Get-Content Snarvo/Snarvo.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1 }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Bygg
+        shell: pwsh
+        run: >
+          dotnet publish Snarvo/Snarvo.csproj -c Release -p:Platform=${{ matrix.platform }}
+          -p:Version=${{ steps.version.outputs.version }} -o out/Snarvo
+
+      - name: Ladda upp osignerat
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: Snarvo-${{ matrix.platform }}-osignerad
+          path: out/Snarvo
+
+      - name: Signera via SignPath
+        if: env.SIGNING == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: snarvo
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: ${{ matrix.platform }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: out/Snarvo-signed
+
+      - name: Packa zip
+        shell: pwsh
+        run: |
+          $folder = if ($env:SIGNING -eq 'true') { 'out/Snarvo-signed' } else { 'out/Snarvo' }
+          Copy-Item README.md, LICENSE, THIRD-PARTY-NOTICES.md, SAKERHET.md $folder
+          $platform = '${{ matrix.platform }}'.ToLowerInvariant()
+          New-Item -ItemType Directory dist | Out-Null
+          # The same name in every release, so the website can link to releases/latest/download/.
+          Compress-Archive -Path "$folder/*" -DestinationPath "dist/Snarvo-$platform.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zip-${{ matrix.platform }}
+          path: dist/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: zip-*
+          path: dist
+          merge-multiple: true
+
+      - name: Kontrollsummor
+        run: |
+          cd dist
+          sha256sum *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Skapa release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --title "Snarvo ${{ needs.build.outputs.version }}"
+          --generate-notes

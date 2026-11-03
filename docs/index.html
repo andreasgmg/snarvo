@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snarvo – skärmdumpar som går att förstå</title>
+  <meta name="description" content="Snarvo är ett gratis tillägg till Skärmklippverktyget i Windows. Markera, dölj personuppgifter och gör steg-för-steg-guider. Öppen källkod, inget nätverk.">
+  <meta property="og:title" content="Snarvo">
+  <meta property="og:description" content="Ett gratis tillägg till Skärmklippverktyget i Windows. Markera, dölj och dela skärmdumpar.">
+  <meta property="og:image" content="img/editor.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="./"><img src="favicon.svg" alt="">Snarvo</a>
+  <nav aria-label="Huvudmeny">
+    <a href="#funktioner" class="hide-small">Funktioner</a>
+    <a href="#sakerhet" class="hide-small">Säkerhet</a>
+    <a href="https://github.com/andreasgmg/snarvo">Källkod</a>
+    <a href="#ladda-ner">Ladda ner</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <h1>Skärmdumpar som <em>går att förstå.</em></h1>
+    <p class="lede">
+      Snarvo är ett litet tillägg till Skärmklippverktyget i Windows. Ta en skärmdump som vanligt,
+      sätt ut pilar och nummer, dölj personnummer och e-post, och skicka vidare. Utan konto,
+      utan moln och utan kostnad.
+    </p>
+    <div class="actions">
+      <a class="button" href="#ladda-ner">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Ladda ner Snarvo
+      </a>
+      <span class="meta">Gratis · Öppen källkod · Windows 10 och 11</span>
+    </div>
+
+    <figure class="shot">
+      <img src="img/editor.png" width="1484" height="992"
+           alt="Snarvos editor med ett formulär där tre steg är numrerade, en pil pekar på knappen Spara medlem och personnummer och e-post är suddade.">
+      <div class="note" aria-hidden="true">
+        <svg viewBox="0 0 48 28"><path d="M46 20 C 34 22, 18 18, 6 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M15 6 L 4 9 L 9 19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        e-posten syns inte
+      </div>
+    </figure>
+  </div>
+
+  <section id="funktioner" class="wrap">
+    <h2>Det som saknades i Skärmklippverktyget</h2>
+    <p class="intro">
+      Skärmklippverktyget tar fina skärmdumpar, men det är svårt att visa vad någon ska titta på.
+      Snarvo lägger sig bredvid och tar emot bilden direkt när du har klippt.
+    </p>
+    <dl class="features">
+      <div><dt>Pilar, nummer och pratbubblor</dt><dd>Numrerade steg räknas om av sig själva när du tar bort eller lägger till.</dd></div>
+      <div><dt>Dölj känsligt</dt><dd>Hittar personnummer, e-post, telefonnummer och lösenord i bilden och pixlar dem. <kbd>Ctrl</kbd>+<kbd>H</kbd></dd></div>
+      <div><dt>Dölj ett namn överallt</dt><dd>Skriv ”Maja Lindqvist” så försvinner namnet på alla ställen där det står.</dd></div>
+      <div><dt>Steg-för-steg-guider</dt><dd>Markera några skärmdumpar, skriv en rad per steg och spara som PDF eller Word.</dd></div>
+      <div><dt>Mjuk penna</dt><dd>Rita en darrig ring och håll still en halv sekund, så blir den en perfekt cirkel.</dd></div>
+      <div><dt>Sök i gamla skärmdumpar</dt><dd>Texten i bilderna läses in, så du kan söka efter det som stod i dem.</dd></div>
+      <div><dt>Förenkla</dt><dd>Byt ut all text mot neutrala block, så att bara det viktiga syns.</dd></div>
+      <div><dt>Dra ut och klistra in</dt><dd>Dra bilden direkt till Teams eller Outlook, eller stäng editorn och klistra in.</dd></div>
+    </dl>
+  </section>
+
+  <section class="wrap">
+    <h2>Så funkar det</h2>
+    <p class="intro">Inget nytt att lära sig. Du tar skärmdumpar på samma sätt som förut.</p>
+    <ol class="steps">
+      <li><h3>Klipp som vanligt</h3><p>Tryck <kbd>Win</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>, eller <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>S</kbd> för att öppna editorn direkt.</p></li>
+      <li><h3>Visa vad som gäller</h3><p>Sätt ut nummer och pilar, och dölj det som inte ska delas.</p></li>
+      <li><h3>Skicka vidare</h3><p>Stäng fönstret, så ligger den färdiga bilden på urklippet och kan klistras in.</p></li>
+    </ol>
+
+    <figure class="side">
+      <img src="img/guide.png" width="1184" height="932" loading="lazy"
+           alt="Guidefönstret med rubriken Så lägger du in en ny medlem och tre steg med bild och text.">
+      <figcaption>
+        <strong>En guide på några minuter</strong>
+        Markera skärmdumparna i biblioteket, skriv en rad per steg och spara som PDF eller Word.
+        Bra för instruktioner till nya kollegor, eller när samma fråga kommer för tionde gången.
+      </figcaption>
+    </figure>
+
+    <figure class="wide">
+      <img src="img/library.png" width="1284" height="320" loading="lazy"
+           alt="Biblioteket med tre skärmdumpar, en sökruta och knappar för att kombinera, göra guide och GIF.">
+      <figcaption>Biblioteket sparar skärmdumparna så att du kan ändra dem senare och söka på texten i dem. Om du hellre vill att ingenting sparas, slår du på privat läge.</figcaption>
+    </figure>
+  </section>
+
+  <div class="wrap">
+    <div class="work" id="sakerhet">
+      <section>
+        <h2>Gjord för att användas på jobbet</h2>
+        <p class="intro">
+          Skärmdumpar innehåller ofta saker som inte ska spridas. Därför är Snarvo byggd för att stanna på datorn.
+        </p>
+        <ul class="checks">
+          <li><strong>Ingen nätverkstrafik</strong><span>Programmet har ingen kod för att skicka något någonstans. Ingen statistik, ingen inloggning.</span></li>
+          <li><strong>Privat läge</strong><span>Skärmdumpar finns bara medan du arbetar med dem och raderas när fönstret stängs.</span></li>
+          <li><strong>Automatisk rensning</strong><span>Låt gamla skärmdumpar raderas efter 1, 7 eller 30 dagar.</span></li>
+          <li><strong>Ingen administratörsbehörighet</strong><span>Ingen installation. Snarvo körs med dina vanliga rättigheter.</span></li>
+          <li><strong>Textigenkänning i Windows</strong><span>Texten i bilden läses av Windows inbyggda funktion, direkt på datorn.</span></li>
+          <li><strong>Öppen källkod</strong><span>All kod går att läsa och granska. Licensen är EUPL-1.2, EU:s egen licens för öppen källkod.</span></li>
+        </ul>
+        <p class="more">IT-avdelningen hittar allt den behöver i <a href="https://github.com/andreasgmg/snarvo/blob/main/SAKERHET.md">säkerhetsbeskrivningen</a>.</p>
+      </section>
+    </div>
+  </div>
+
+  <section id="ladda-ner" class="wrap download">
+    <h2>Ladda ner</h2>
+    <p class="intro">
+      Packa upp zip-filen var du vill och starta <code>Snarvo.exe</code>. Den lägger sig i systemfältet,
+      nere till höger. Välj ”Starta med Windows” i menyn om du vill att den alltid ska vara igång.
+    </p>
+    <div class="platforms">
+      <a class="button" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-x64.zip">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Windows (vanlig dator)
+      </a>
+      <a class="button secondary" href="https://github.com/andreasgmg/snarvo/releases/latest/download/Snarvo-arm64.zip">Windows på ARM</a>
+    </div>
+    <p class="warning">
+      Första gången kan Windows visa ”Windows skyddade datorn”, eftersom Snarvo är nytt och ännu inte signerat.
+      Klicka på <em>Mer information</em> och sedan <em>Kör ändå</em>.
+    </p>
+    <p class="meta">
+      Tidigare versioner och kontrollsummor finns under <a href="https://github.com/andreasgmg/snarvo/releases">Releases</a>.
+      Kräver Windows 10 eller 11.
+    </p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Andreas Glans · Fri programvara under <a href="https://github.com/andreasgmg/snarvo/blob/main/LICENSE">EUPL-1.2</a></span>
+    <span><a href="https://github.com/andreasgmg/snarvo/blob/main/CODE_SIGNING.md">Kodsigneringspolicy</a> · Sidan använder inga kakor och ingen spårning.</span>
+  </div>
+</footer>
+
+</body>
+</html>

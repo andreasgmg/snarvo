@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Andreas Glans. SPDX-License-Identifier: EUPL-1.2 -->
+<Window
+    x:Class="Snarvo.LibraryWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Snarvo">
+
+    <Grid x:Name="Root" RowDefinitions="Auto,*">
+        <Grid Padding="20,16,20,12" ColumnSpacing="16" ColumnDefinitions="Auto,*,Auto">
+            <AutoSuggestBox x:Name="SearchBox" Grid.Column="1" MaxWidth="460" VerticalAlignment="Center"
+                            PlaceholderText="Sök på text i skärmdumparna …" QueryIcon="Find"
+                            TextChanged="SearchBox_TextChanged" />
+            <StackPanel Spacing="2">
+                <TextBlock Text="Snarvo" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock x:Name="Subtitle" Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Button Click="Capture_Click" AutomationProperties.Name="Ny skärmdump" Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE722;" FontSize="16" />
+                        <TextBlock Text="Ny skärmdump" />
+                    </StackPanel>
+                </Button>
+                <DropDownButton x:Name="CombineButton" IsEnabled="False" AutomationProperties.Name="Kombinera"
+                                ToolTipService.ToolTip="Sätt ihop markerade skärmdumpar till en bild. Markera flera med Ctrl+klick.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xF0E2;" FontSize="16" />
+                        <TextBlock Text="Kombinera" />
+                    </StackPanel>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Bredvid varandra" Click="CombineSideBySide_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE89F;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Under varandra" Click="CombineStacked_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A0;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+                <Button x:Name="GuideButton" Click="Guide_Click" IsEnabled="False" AutomationProperties.Name="Guide"
+                        ToolTipService.ToolTip="Gör en steg-för-steg-guide (PDF eller Word) av markerade skärmdumpar. Markera flera med Ctrl+klick.">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8FD;" FontSize="16" />
+                        <TextBlock Text="Guide" />
+                    </StackPanel>
+                </Button>
+                <Button Click="Video_Click" AutomationProperties.Name="Video till GIF" ToolTipService.ToolTip="Gör en GIF av en skärminspelning från Skärmklippverktyget">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE714;" FontSize="16" />
+                        <TextBlock Text="Video → GIF" />
+                    </StackPanel>
+                </Button>
+                <Button Click="Open_Click" AutomationProperties.Name="Öppna bild">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8E5;" FontSize="16" />
+                        <TextBlock Text="Öppna bild…" />
+                    </StackPanel>
+                </Button>
+                <DropDownButton x:Name="RetentionButton" AutomationProperties.Name="Automatisk rensning"
+                                ToolTipService.ToolTip="Radera gamla skärmdumpar automatiskt">
+                    <FontIcon Glyph="&#xE81C;" FontSize="16" />
+                    <DropDownButton.Flyout>
+                        <MenuFlyout x:Name="RetentionMenu" Placement="BottomEdgeAlignedRight" />
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+                <Button Click="Folder_Click" AutomationProperties.Name="Visa biblioteksmappen" ToolTipService.ToolTip="Visa biblioteksmappen i Utforskaren">
+                    <FontIcon Glyph="&#xE838;" FontSize="16" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <GridView x:Name="Items" Grid.Row="1" Padding="14,0,14,14"
+                  SelectionMode="Extended" IsDoubleTapEnabled="True" DoubleTapped="Items_DoubleTapped"
+                  CanDragItems="True" DragItemsStarting="Items_DragItemsStarting"
+                  KeyDown="Items_KeyDown" SelectionChanged="Items_SelectionChanged">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="local:LibraryItem">
+                    <Grid Width="232" Padding="6" RowSpacing="6" RowDefinitions="150,Auto"
+                          ContextRequested="Item_ContextRequested">
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Redigera" Click="MenuEdit_Click">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Kopiera bild" Click="MenuCopy_Click">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Visa i Utforskaren" Click="MenuReveal_Click">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Ta bort" Click="MenuDelete_Click">
+                                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
+                        <Border CornerRadius="6" Background="{ThemeResource ControlFillColorSecondaryBrush}">
+                            <Image Source="{x:Bind Thumbnail}" Stretch="Uniform" />
+                        </Border>
+                        <TextBlock Grid.Row="1" Text="{x:Bind Label}" Style="{StaticResource CaptionTextBlockStyle}" />
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+
+        <TextBlock x:Name="NoResults" Grid.Row="1" Visibility="Collapsed" TextWrapping="Wrap" TextAlignment="Center"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="420"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+        <StackPanel x:Name="EmptyState" Grid.Row="1" Spacing="8" MaxWidth="420"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+            <FontIcon Glyph="&#xE722;" FontSize="40" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            <TextBlock Text="Inga skärmdumpar än" HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock x:Name="EmptyHint" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </Grid>
+</Window>

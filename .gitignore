@@ -1,0 +1,8 @@
+bin/
+obj/
+publish/
+.vs/
+*.user
+*.log
+dist/
+SIGNPATH-ANSOKAN.md

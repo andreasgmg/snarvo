@@ -1,0 +1,385 @@
+// Copyright (c) 2026 Andreas Glans
+// SPDX-License-Identifier: EUPL-1.2
+
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using Microsoft.Windows.AppLifecycle;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Snarvo.Editor;
+using Snarvo.Native;
+using Snarvo.Services;
+using Windows.ApplicationModel.DataTransfer;
+
+namespace Snarvo;
+
+public partial class App : Application
+{
+    public const string HotkeyText = "Ctrl+Alt+S";
+    const int CaptureHotkey = 1;
+
+    // Process names Snipping Tool has used across Windows 10/11 releases.
+    static readonly string[] SnippingToolProcesses = ["SnippingTool", "ScreenClippingHost", "ScreenSketch"];
+
+    public static App? Instance { get; private set; }
+    public static string IconPath => Path.Combine(AppContext.BaseDirectory, "Assets", "Snarvo.ico");
+
+    public AppSettings Settings { get; private set; } = new();
+
+    /// <summary>Current colour and sizes per tool; one shared set so every editor window agrees.</summary>
+    public Dictionary<Tool, ToolStyle> ToolStyles { get; private set; } = ToolStyle.CreateDefaults();
+
+    readonly Dictionary<string, EditorWindow> _editors = new();
+    DispatcherQueue _queue = null!;
+    DispatcherQueueTimer _clipboardDebounce = null!;
+    DispatcherQueueTimer _saveDebounce = null!;
+    DispatcherQueueTimer _cleanupTimer = null!;
+    TrayHost? _tray;
+    LibraryWindow? _library;
+    bool _captureRequested;    DateTime _captureDeadline;
+    DateTime _ignoreClipboardUntil;
+    string? _lastCaptureId;
+
+    public App()
+    {
+        Instance = this;
+        InitializeComponent();
+        UnhandledException += (_, e) =>
+        {
+            Log(e.Exception);
+            e.Handled = true;
+        };
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        // The app lives in the tray, so closing the last window must not quit.
+        DispatcherShutdownMode = DispatcherShutdownMode.OnExplicitShutdown;
+        _queue = DispatcherQueue.GetForCurrentThread();
+        Settings = AppSettings.Load();
+        AppSettings.MigrateAutostart();
+        ToolStyles = ToolStyle.WithDefaults(Settings.ToolStyles);
+        Settings.ToolStyles = ToolStyles;
+
+        _saveDebounce = _queue.CreateTimer();
+        _saveDebounce.Interval = TimeSpan.FromSeconds(1);
+        _saveDebounce.IsRepeating = false;
+        _saveDebounce.Tick += (_, _) => SaveSettings();
+
+        _clipboardDebounce = _queue.CreateTimer();
+        _clipboardDebounce.Interval = TimeSpan.FromMilliseconds(300);
+        _clipboardDebounce.IsRepeating = false;
+        _clipboardDebounce.Tick += async (_, _) => await ImportFromClipboardAsync();
+
+        _tray = new TrayHost(IconPath, $"Snarvo – {HotkeyText} för ny skärmdump");
+        _tray.Clicked += StartCapture;
+        _tray.HotkeyPressed += _ => StartCapture();
+        _tray.BalloonClicked += () =>
+        {
+            if (_lastCaptureId is { } id) _ = OpenEditorAsync(id);
+            else ShowLibrary();
+        };
+        _tray.ClipboardUpdated += OnClipboardUpdated;
+        _tray.MenuProvider = BuildTrayMenu;
+
+        // Private captures left behind by a crash, old dragged-out files and captures past the
+        // chosen age are removed first, and then once an hour while the app runs.
+        Library.DeleteTemporary();
+        CleanUp();
+        _cleanupTimer = _queue.CreateTimer();
+        _cleanupTimer.Interval = TimeSpan.FromHours(1);
+        _cleanupTimer.Tick += (_, _) => CleanUp();
+        _cleanupTimer.Start();
+
+        // Keep the search index current: new captures and saved edits both change the library.
+        Library.Changed += () => _queue.TryEnqueue(TextIndex.Update);
+        TextIndex.Update();
+
+        bool hotkeyOk = _tray.RegisterHotkey(CaptureHotkey, Win32.MOD_CONTROL | Win32.MOD_ALT, 'S');        var commandLine = Environment.GetCommandLineArgs().Skip(1).ToList();
+        bool background = commandLine.Contains("--background");
+        var files = commandLine.Where(IsOpenableFile).ToList();
+
+        if (files.Count > 0)
+        {
+            foreach (var file in files) _ = OpenFileAsync(file);
+        }
+        else if (!background)
+        {
+            ShowLibrary();
+            _tray.ShowBalloon("Snarvo körs i systemfältet",
+                hotkeyOk
+                    ? $"Tryck {HotkeyText} för en ny skärmdump, eller använd Win+Shift+S som vanligt."
+                    : $"{HotkeyText} används redan av ett annat program. Klicka på ikonen för att ta en skärmdump.");
+        }
+        else if (!hotkeyOk)
+        {
+            _tray.ShowBalloon("Snarvo", $"{HotkeyText} används redan av ett annat program.");
+        }
+
+        // SnipPlus is this app's old name; two copies would both catch every capture.
+        if (AppSettings.LegacyAppRunning())
+            _tray.ShowBalloon("Den gamla SnipPlus körs fortfarande",
+                "Avsluta den (högerklicka på dess ikon i systemfältet) och starta om Snarvo, så att bara en av dem tar emot skärmdumparna.");
+    }
+
+    /// <summary>
+    /// Called on a background thread when someone launches Snarvo a second time:
+    /// open any image files it was given, otherwise show the library.
+    /// </summary>
+    public void OnRedirectedActivation(AppActivationArguments activation)
+    {
+        var commandLine = activation.Data is Windows.ApplicationModel.Activation.ILaunchActivatedEventArgs launch
+            ? launch.Arguments
+            : "";
+        var files = Regex.Matches(commandLine, "\"([^\"]+)\"|(\\S+)")
+            .Select(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)
+            .Where(IsOpenableFile)
+            .ToList();
+        _queue?.TryEnqueue(() =>
+        {
+            if (files.Count == 0) ShowLibrary();
+            foreach (var file in files) _ = OpenFileAsync(file);
+        });
+    }
+
+    IReadOnlyList<TrayMenuItem> BuildTrayMenu() =>
+    [
+        new($"Ny skärmdump\t{HotkeyText}", StartCapture),
+        new("Öppna bibliotek", ShowLibrary),
+        new("Gör GIF av en inspelning …", () =>
+        {
+            ShowLibrary();
+            if (_library is { } library) _ = VideoWindow.PickAndOpenAsync(library);
+        }),
+        TrayMenuItem.Separator,
+        new("Privat läge – spara inte skärmdumpar", TogglePrivateMode, Settings.PrivateMode),
+        new("Öppna editorn efter varje snip", () =>
+        {
+            Settings.AutoOpenEditor = !Settings.AutoOpenEditor;
+            Settings.Save();
+        }, Settings.AutoOpenEditor),
+        new("Kopiera bilden när editorn stängs", () =>
+        {
+            Settings.CopyOnClose = !Settings.CopyOnClose;
+            Settings.Save();
+        }, Settings.CopyOnClose),
+        new("Fånga bara bilder från Snipping Tool", () =>
+        {
+            Settings.OnlySnippingTool = !Settings.OnlySnippingTool;
+            Settings.Save();
+        }, Settings.OnlySnippingTool),
+        new("Starta med Windows", () => AppSettings.StartWithWindows = !AppSettings.StartWithWindows,
+            AppSettings.StartWithWindows),
+        TrayMenuItem.Separator,
+        new("Om Snarvo", () => _tray?.ShowBalloon($"Snarvo {typeof(App).Assembly.GetName().Version?.ToString(3)}",
+            "© 2026 Andreas Glans. Fri programvara med öppen källkod under licensen EUPL-1.2.")),
+        new("Avsluta Snarvo", () => _ = ExitAsync()),
+    ];
+
+    /// <summary>Applies the automatic clean-up setting. Captures open in an editor wait until next time.</summary>
+    public void CleanUp()
+    {
+        try
+        {
+            Library.CleanShareFolder(TimeSpan.FromDays(1));
+            if (Settings.KeepDays > 0)
+            {
+                int deleted = Library.DeleteOlderThan(Settings.KeepDays, skip: _editors.ContainsKey);
+                if (deleted > 0) Log($"Automatisk rensning: raderade {deleted} skärmdumpar äldre än {Settings.KeepDays} dagar.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+    }
+
+    void TogglePrivateMode()
+    {
+        Settings.PrivateMode = !Settings.PrivateMode;
+        SaveSettings();
+        Library.NotifyChanged(); // the library window shows the mode
+        _tray?.ShowBalloon(Settings.PrivateMode ? "Privat läge på" : "Privat läge av",
+            Settings.PrivateMode
+                ? "Nya skärmdumpar öppnas i editorn och raderas när du stänger den. De sparas inte i biblioteket."
+                : "Nya skärmdumpar sparas i biblioteket igen.");
+    }
+
+    /// <summary>Saves settings shortly, so dragging a slider does not write the file on every step.</summary>
+    public void SaveSettingsSoon()
+    {
+        _saveDebounce.Stop();
+        _saveDebounce.Start();
+    }
+
+    void SaveSettings()
+    {
+        try
+        {
+            Settings.Save();
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+    }
+
+    /// <summary>Starts Snipping Tool's capture overlay; the result arrives via the clipboard.</summary>
+    public void StartCapture()
+    {
+        _captureRequested = true;
+        _captureDeadline = DateTime.Now.AddMinutes(2);
+        try
+        {
+            Process.Start(new ProcessStartInfo("ms-screenclip:") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+            _tray?.ShowBalloon("Snarvo", "Kunde inte starta Skärmklippverktyget.");
+        }
+    }
+
+    /// <summary>Our own copies must not be re-imported as new captures.</summary>
+    public void IgnoreClipboardFor(TimeSpan duration) => _ignoreClipboardUntil = DateTime.Now + duration;
+
+    void OnClipboardUpdated()
+    {
+        if (DateTime.Now < _ignoreClipboardUntil) return;
+
+        var (pid, name) = TrayHost.GetClipboardOwner();
+        if (pid == Environment.ProcessId) return;
+
+        bool fromSnippingTool = name is not null &&
+            SnippingToolProcesses.Any(p => name.Contains(p, StringComparison.OrdinalIgnoreCase));
+        bool requested = _captureRequested && DateTime.Now < _captureDeadline;
+        if (Settings.OnlySnippingTool && !fromSnippingTool && !requested) return;
+
+        // Clipboard owners often update in several steps; wait for them to finish.
+        _clipboardDebounce.Stop();
+        _clipboardDebounce.Start();
+    }
+
+    async Task ImportFromClipboardAsync()
+    {
+        bool requested = _captureRequested && DateTime.Now < _captureDeadline;
+        string? id;
+        try
+        {
+            var content = Clipboard.GetContent();
+            if (!content.Contains(StandardDataFormats.Bitmap)) return;
+            var reference = await content.GetBitmapAsync();
+            using var stream = await reference.OpenReadAsync();
+            id = await Library.ImportAsync(stream, forceOpaque: true, temporary: Settings.PrivateMode);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+            return;
+        }
+        if (id is null) return;
+
+        _captureRequested = false;
+        // In private mode the editor is the only place the capture exists, so it always opens.
+        if (requested || Settings.AutoOpenEditor || Settings.PrivateMode)
+        {
+            await OpenEditorAsync(id);
+        }
+        else
+        {
+            _lastCaptureId = id;
+            _tray?.ShowBalloon("Skärmdumpen sparades i Snarvo", "Klicka här för att redigera den.");
+        }
+    }
+
+    public async Task OpenEditorAsync(string id)
+    {
+        try
+        {
+            if (_editors.TryGetValue(id, out var existing))
+            {
+                WindowHelper.BringToFront(existing);
+                return;
+            }
+            var document = await SnipDocument.LoadAsync(id);
+            var editor = new EditorWindow(document);
+            _editors[id] = editor;
+            editor.Closed += (_, _) => _editors.Remove(id);
+            WindowHelper.BringToFront(editor);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+    }
+
+    static readonly string[] ImageExtensions = [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff"];
+    static readonly string[] VideoExtensions = [".mp4", ".mov", ".wmv", ".avi", ".mkv"];
+
+    static bool HasExtension(string path, string[] extensions) =>
+        extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
+    // The command line also holds the path of Snarvo.exe itself, which exists but is neither.
+    static bool IsOpenableFile(string path) =>
+        File.Exists(path) && (HasExtension(path, ImageExtensions) || HasExtension(path, VideoExtensions));
+
+    /// <summary>Images go to the library and editor; videos open the GIF maker.</summary>
+    async Task OpenFileAsync(string path)
+    {
+        try
+        {
+            if (HasExtension(path, VideoExtensions))
+            {
+                WindowHelper.BringToFront(new VideoWindow(await Windows.Storage.StorageFile.GetFileFromPathAsync(path)));
+                return;
+            }
+            var id = await Library.ImportFileAsync(path, temporary: Settings.PrivateMode);
+            if (id is not null) await OpenEditorAsync(id);
+        }
+        catch (Exception ex)
+        {
+            Log(ex);
+        }
+    }
+
+    public void ShowLibrary()
+    {
+        if (_library is null)
+        {
+            _library = new LibraryWindow();
+            _library.Closed += (_, _) => _library = null;
+        }
+        WindowHelper.BringToFront(_library);
+    }
+
+    async Task ExitAsync()
+    {
+        foreach (var editor in _editors.Values.ToList())
+        {
+            await editor.SaveIfDirtyAsync();
+            editor.Close();
+        }
+        _library?.Close();
+        Library.DeleteTemporary();
+        _saveDebounce.Stop();
+        _cleanupTimer.Stop();
+        SaveSettings();
+        _tray?.Dispose();
+        Exit();
+    }
+
+    public static void Log(Exception ex) => Log(ex.ToString());
+
+    public static void Log(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppSettings.DataFolder);
+            File.AppendAllText(Path.Combine(AppSettings.DataFolder, "error.log"), $"[{DateTime.Now:O}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Logging must never take the app down.
+        }
+    }
+}
