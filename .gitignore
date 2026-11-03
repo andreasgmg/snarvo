@@ -6,3 +6,4 @@ publish/
 *.log
 dist/
 SIGNPATH-ANSOKAN.md
+winget/manifests/
