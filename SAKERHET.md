@@ -1,9 +1,9 @@
 # Snarvo – beskrivning för IT och informationssäkerhet
 
-Version 1.1.0. Det här dokumentet beskriver vad programmet gör, vilka data det hanterar och vilka
+Version 1.2.0. Det här dokumentet beskriver vad programmet gör, vilka data det hanterar och vilka
 behörigheter det använder. Syftet är att underlätta en bedömning innan programmet används i en
 organisation. Källkoden följer med och kan granskas i sin helhet: cirka 7 000 rader C# och XAML, som du
-hittar i `Snarvo\`.
+hittar i `Snarvo\`. Automatiska tester av de viktigaste delarna finns i `Snarvo.Tests\`.
 
 ## Vad programmet är
 
@@ -12,7 +12,8 @@ en ikon i systemfältet. Själva skärmdumpen tas av Skärmklippverktyget. Snarv
 urklippet och används sedan för att:
 
 - markera med pilar, text och numrerade steg
-- dölja känslig information genom pixling
+- dölja känslig information med heltäckande rutor (eller pixling eller oskärpa)
+- spela in steg-för-steg-guider (se "Stegregistrering" nedan)
 - dela bilden
 - göra steg-för-steg-guider i PDF eller Word
 
@@ -38,6 +39,23 @@ Programmet registrerar sig med `AddClipboardFormatListener` för att få veta n�
   lagt på urklippet. Det kontrolleras med vilken process som äger urklippet.
 - **Inställningen kan slås av.** Om "Fånga bara bilder från Snipping Tool" stängs av, tas även bilder
   som kopierats från andra program emot.
+
+### Stegregistrering
+Stegregistreringen är den enda funktion som ser vad som händer i andra program, och den är därför
+avgränsad så här:
+
+- **Startas bara av användaren** ("Spela in steg") och pågår tills användaren trycker Klar eller
+  Avbryt. Under hela tiden visas ett fält överst på skärmen.
+- **Bara musklick.** Programmet installerar en mushook på låg nivå (`SetWindowsHookEx` med
+  `WH_MOUSE_LL`) som bara reagerar på vänsterklick. **Tangenttryckningar registreras aldrig.**
+  Säkerhetsprogram kan känna igen mushooken; den finns bara medan en inspelning pågår.
+- **Vid varje klick** kopieras det fönster som klickades (med `BitBlt`) och namnet och typen på den
+  kontroll som klickades läses via Windows tillgänglighetsgränssnitt (`AccessibleObjectFromPoint`),
+  till exempel knappen "Spara". Innehållet i textfält läses inte. Klick i Snarvos egna fönster
+  hoppas över.
+- **Känsliga uppgifter döljs direkt** i varje bild (kan stängas av). Bilderna hamnar i biblioteket,
+  eller, i privat läge, bara i guiden och raderas när den stängs.
+- **Kan stängas av helt** av organisationen (grupprincipen *Tillåt stegregistrering*).
 
 ### Kortkommando
 `Ctrl+Alt+S` registreras med `RegisterHotKey`. Det är **ingen tangentbordskrok**: programmet ser
@@ -71,7 +89,7 @@ finns i `installer\Snarvo.iss`.
 | `%LOCALAPPDATA%\Snarvo\settings.json` | Inställningar. |
 | `%LOCALAPPDATA%\Snarvo\error.log` | Felmeddelanden med teknisk information. Innehåller inte bildinnehåll. |
 | `%TEMP%\Snarvo\` | Bilder som användaren drar ut till andra program eller kopierar som fil. De raderas automatiskt efter ett dygn. |
-| Valfri mapp | När användaren själv exporterar, sparar till en vald mapp eller sparar en guide. |
+| Valfri mapp | När användaren själv exporterar, sparar till en vald mapp eller sparar en guide (PDF, Word eller HTML). |
 
 Miljövariabeln `SNARVO_DATA` kan peka om datamappen till en annan plats.
 
@@ -96,11 +114,34 @@ byggs upp på datorn. För att begränsa det finns två inställningar:
 personnummer och namn. Det är ett **hjälpmedel, inte en garanti**. OCR missar ibland text, till
 exempel kortnummer. Användaren behöver alltid själv kontrollera bilden innan den delas.
 
+### Central styrning (grupprinciper och Intune)
+Inställningarna kan låsas för en hel organisation. Mallar för grupprinciper (ADMX/ADML på svenska och
+engelska) finns i `policy\` och som `Snarvo-grupprinciper.zip` under Releases. Kopiera `Snarvo.admx`
+till `PolicyDefinitions` och `.adml`-filerna till `sv-SE` respektive `en-US`. I Intune kan mallen
+importeras som en egen ADMX.
+
+Principerna skrivs under `HKLM\Software\Policies\Snarvo` (datorn) eller
+`HKCU\Software\Policies\Snarvo` (användaren); datorns värde gäller före användarens.
+
+| Värde | Typ | Betydelse |
+|---|---|---|
+| `PrivateMode` | DWORD 0/1 | Privat läge av/på |
+| `KeepDays` | DWORD | Radera skärmdumpar äldre än så många dagar (0 = aldrig) |
+| `OnlySnippingTool` | DWORD 0/1 | Ta bara emot bilder från Skärmklippverktyget |
+| `HideMethod` | DWORD 0/1/2 | Täck över / pixla / oskärpa |
+| `AllowStepRecorder` | DWORD 0/1 | 0 stänger av stegregistreringen |
+| `GuideLogo` | REG_SZ | Sökväg till logga i guider (miljövariabler tillåts) |
+| `GuideAccent` | REG_SZ | Rubrikfärg i guider, t.ex. `0078D4` |
+| `GuideOrganization` | REG_SZ | Organisationens namn i guider |
+
+En låst inställning går inte att ändra i Snarvo och visas som "Styrs av din organisation".
+
 ### Rekommenderade inställningar i en organisation
-1. Slå på **Privat läge**.
+1. Slå på **Privat läge**, gärna via grupprincip.
 2. Om biblioteket ska användas: slå på **automatisk rensning**, 1 eller 7 dagar.
 3. Behåll "Fånga bara bilder från Snipping Tool" påslagen (standard).
-4. Kontrollera att datorn har diskkryptering (BitLocker).
+4. Behåll **Täck över** som sätt att dölja (standard).
+5. Kontrollera att datorn har diskkryptering (BitLocker).
 
 ## Begränsningar och risker att känna till
 
@@ -109,8 +150,6 @@ exempel kortnummer. Användaren behöver alltid själv kontrollera bilden innan 
 - **Ingen kodsignering.** Exe-filen är inte signerad, så det går inte att verifiera vem som byggt
   den. Ett alternativ är att IT bygger programmet själv från källkoden, enligt nedan, och jämför.
 - **Inga automatiska uppdateringar.** Nya versioner måste distribueras manuellt.
-- **Inga centrala policyer.** Inställningarna ligger per användare i `settings.json`. Det finns inget
-  stöd för grupprinciper (GPO) eller Intune-policyer.
 - **Komponenter som inte används följer med.** Paketet innehåller hela Windows App SDK, cirka
   140 MB, även delar som programmet inte använder.
 

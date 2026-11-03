@@ -1,5 +1,9 @@
 # Snarvo
 
+*English: Snarvo is a free companion app for the Windows Snipping Tool – annotate, hide personal data
+automatically and record step-by-step guides. The app follows the Windows display language
+(Swedish or English). The documentation below is in Swedish.*
+
 Ett tillägg till Skärmklippverktyget (Snipping Tool) i Windows 10 och 11. Med det kan du markera,
 dölja och dela skärmdumpar snabbare.
 
@@ -18,19 +22,27 @@ Inställningar › Appar.
 Vill du hellre slippa installera finns samma app som zip-fil: packa upp och starta `Snarvo.exe`.
 
 För IT: `Snarvo-setup-x64.exe /VERYSILENT /TASKS="autostart"` installerar utan frågor. Avinstallera
-tyst med `unins000.exe /VERYSILENT` i programmappen.
+tyst med `unins000.exe /VERYSILENT` i programmappen. Inställningar kan styras centralt med
+grupprinciper; mallarna finns i `policy\` och som `Snarvo-grupprinciper.zip` under Releases. Se
+[SAKERHET.md](SAKERHET.md). Snarvo kan också installeras med winget (se [winget/README.md](winget/README.md)).
 
 ## Funktioner
 
 - **Fånga:** `Ctrl+Alt+S` eller klick på ikonen i systemfältet startar Snipping Tool. Resultatet
   öppnas direkt i Snarvo. Vanliga `Win+Shift+S`-klipp hamnar också i biblioteket.
-- **Pilar** (avsmalnande, Snagit-stil), linjer, rektanglar, ellipser och frihandspenna.
+- **Pilar** med tydlig spets, linjer, rektanglar, ellipser och frihandspenna. Allt får en tunn
+  kontrastkant så att det syns på både ljusa och mörka bilder.
 - **Mjuka penndrag:** pennan jämnar ut darrig musrörelse. Håll musen still en halv sekund i slutet
   av ett drag, som på iPad, så blir en skakig cirkel, ellips, rektangel eller linje perfekt.
 - **Numrerade steg** (1, 2, 3 …) som numreras om automatiskt.
-- **Pratbubblor** med pekare och **text** med kontrastkant.
+- **Pratbubblor** med pekare och **text**, som etikett med färgad bakgrund (knappen "Bakgrund")
+  eller med kontrastkant.
+- **Färgpalett** med tio färger som fungerar ihop och syns mot det mesta.
 - **Överstrykning** som behåller texten läsbar.
-- **Oskärpa** och **pixling** för att dölja lösenord, nycklar och e-postadresser.
+- **Täck över** (`D`): heltäckande ruta med ett litet lås. Säkrast – till skillnad från
+  **oskärpa** och **pixling** går inget av det som stod under att återskapa.
+- **Klicka på text:** med rektangel, överstrykning, täck över, pixla eller oskärpa markerar ett klick
+  (utan att dra) exakt det ord du klickar på. `Shift`+klick tar hela raden.
 - **Förstoringsglas** och **strålkastare** (tonar ner allt utom det viktiga).
 - **Beskär** och **klipp ut remsa**: ta bort en rad- eller kolumnremsa ur mitten och foga ihop resten.
 - **Beskär kanter automatiskt** (`Ctrl+Shift+K`, eller knappen som visas när Beskär är valt): tar
@@ -38,12 +50,13 @@ tyst med `unins000.exe /VERYSILENT` i programmappen.
 - **Effekter:** ram, rundade hörn och skugga runt hela bilden.
 - **Textigenkänning (OCR):** kopiera texten i bilden med Windows inbyggda OCR.
 - **Dölj känsligt** (`Ctrl+H`): hittar e-post, telefonnummer, personnummer, IBAN, IP-adresser,
-  API-nycklar och värden efter "Lösenord:" med OCR och pixlar dem. Windows OCR hoppar ofta över
-  kortnummer helt, så kontrollera alltid bilden själv.
+  API-nycklar och värden efter "Lösenord:" med OCR och täcker över dem (eller pixlar eller suddar,
+  om du väljer det i menyn). Personnummer känns igen på ett rimligt datum. Windows OCR hoppar ofta
+  över kortnummer helt, så kontrollera alltid bilden själv.
 - **Förenkla:** byter ut all text i bilden mot rundade block i bildens egna färger, så att det du
   vill visa sticker ut. Markera ett block och tryck `Delete` för att visa just den texten igen.
 - **Dölj ord eller namn** (`Ctrl+Shift+H`, eller pilen på "Dölj känsligt"): skriv ett eller flera ord,
-  åtskilda med komma, så pixlas varje ställe i bilden där de står. Stora och små bokstäver spelar
+  åtskilda med komma, så döljs varje ställe i bilden där de står. Stora och små bokstäver spelar
   ingen roll, och å, ä och ö matchar även a och o eftersom OCR ibland tappar prickarna.
 - **Färgpipett:** `Alt`+klick i bilden (eller knappen i färgmenyn) väljer färgen och kopierar hex-koden.
 - **Mallar:** verktygens färger och storlekar sparas automatiskt. Spara stil och effekter som en
@@ -62,9 +75,14 @@ tyst med `unins000.exe /VERYSILENT` i programmappen.
 - **Sök på text:** all text i bilderna läses in i bakgrunden, så att sökrutan i biblioteket hittar
   skärmdumpar på innehåll.
 - **Kombinera:** markera flera bilder (`Ctrl`+klick) och sätt ihop dem bredvid eller under varandra.
+- **Stegregistrering:** tryck "Spela in steg" och arbeta som vanligt. Varje klick blir ett steg med
+  en bild av fönstret, en ram runt det du klickade på och ett textförslag ("Klicka på knappen
+  ”Spara”"). Personuppgifter döljs direkt. Tryck "Klar" så öppnas guiden. Bara musklick spelas in,
+  aldrig det du skriver.
 - **Steg-för-steg-guide:** markera skärmdumpar i biblioteket och välj "Guide". Skriv en rubrik och
-  en beskrivning per steg, ändra ordning, och spara som PDF eller Word. Stegen hålls ihop på samma
-  sida.
+  en beskrivning per steg, ändra ordning, och spara som PDF, Word eller webbsida (en enda HTML-fil).
+  Under "Utseende" väljer du logga, rubrikfärg och organisationens namn. Bilderna i Word och på
+  webbsidan får alternativtext.
 - **Video → GIF:** öppna en skärminspelning från Snipping Tool, klipp start och slut, välj
   bildfrekvens och bredd, och spara som GIF som loopar.
 - **Kopiera vid stängning:** stäng editorn, så ligger den redigerade bilden på urklippet. Det händer
@@ -84,6 +102,7 @@ tyst med `unins000.exe /VERYSILENT` i programmappen.
 | H | Överstrykning | M | Förstoringsglas |
 | P | Penna | S | Strålkastare |
 | K | Beskär | U | Klipp ut remsa |
+| D | Täck över | | |
 
 - `Ctrl+Z` / `Ctrl+Y`: ångra / gör om
 - `Ctrl+C`: kopiera bild
@@ -108,6 +127,12 @@ dotnet build Snarvo\Snarvo.csproj -p:Platform=x64
 .\Snarvo\bin\x64\Debug\net10.0-windows10.0.22621.0\win-x64\Snarvo.exe
 ```
 
+Tester:
+
+```powershell
+dotnet test Snarvo.Tests\Snarvo.Tests.csproj -p:Platform=x64
+```
+
 Fristående version i en mapp:
 
 ```powershell
@@ -123,17 +148,21 @@ alla ändringar är committade, så att källkoden stämmer med appen.
 `Snarvo.exe bild.png` öppnar en bild direkt i editorn, och `Snarvo.exe inspelning.mp4` öppnar
 GIF-verktyget. Det fungerar även när Snarvo redan körs.
 
-## Inställningar (högerklicka på ikonen i systemfältet)
+## Inställningar
 
-- **Privat läge – spara inte skärmdumpar:** nya skärmdumpar öppnas alltid i editorn och raderas från
-  disken när du stänger den. De syns inte i biblioteket och läses inte in för sökning. Vill du
-  spara en viss bild väljer du **Dela → Behåll i biblioteket**. Om appen kraschar raderas
-  kvarlämnade bilder vid nästa start. Skärmdumpar som redan finns i biblioteket påverkas inte.
-- **Öppna editorn efter varje snip:** öppnar editorn även för `Win+Shift+S`-klipp. Annars visas
-  en notis som du kan klicka på.
-- **Kopiera bilden när editorn stängs.**
-- **Fånga bara bilder från Snipping Tool:** ignorerar bilder som andra program kopierar.
-- **Starta med Windows.**
+Kugghjulet i biblioteket, eller **Inställningar …** i menyn i systemfältet (`Snarvo.exe --settings`):
+
+- **Allmänt:** starta med Windows, öppna editorn efter varje skärmdump, kopiera bilden när editorn
+  stängs, ta bara emot bilder från Skärmklippverktyget.
+- **Integritet:**
+  - **Privat läge:** nya skärmdumpar öppnas alltid i editorn och raderas från disken när du stänger
+    den. De syns inte i biblioteket och läses inte in för sökning. Vill du spara en viss bild väljer
+    du **Dela → Behåll i biblioteket**. Om appen kraschar raderas kvarlämnade bilder vid nästa start.
+    Privat läge går också att slå på direkt i menyn i systemfältet.
+  - Automatisk rensning, hur känsligt döljs, och om känsligt döljs i inspelade steg.
+- **Utseende:** ljust, mörkt eller som Windows; text med bakgrund; återställ färger och storlekar.
+
+Inställningar som din organisation styr visas som låsta.
 
 Tips: om både Snipping Tools eget fönster och Snarvo öppnas efter en skärmdump kan du stänga av
 "Öppna Skärmklipp automatiskt" eller liknande i Snipping Tools inställningar.

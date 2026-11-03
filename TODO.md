@@ -72,3 +72,4 @@ En sak i taget. Varje punkt byggs, testas och bockas av innan nästa påbörjas.
 - [x] **38. winget:** manifest och skript så att Snarvo kan installeras med `winget install`.
 - [x] **39. Engelsk version:** appen följer Windows språk (svenska, annars engelska).
 - [x] **40. Automatiska tester:** känsliga uppgifter, privat läge och rensning; körs i GitHub Actions.
+- [x] **41. Dokumentation och version 1.2.0:** README, SAKERHET.md (stegregistrering, grupprinciper) och hemsidan.
