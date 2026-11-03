@@ -50,7 +50,7 @@ jobs:
 
       - name: Ladda upp osignerat
         id: unsigned
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Snarvo-${{ matrix.platform }}-osignerad
           path: out/Snarvo
@@ -78,7 +78,7 @@ jobs:
           # The same name in every release, so the website can link to releases/latest/download/.
           Compress-Archive -Path "$folder/*" -DestinationPath "dist/Snarvo-$platform.zip"
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: zip-${{ matrix.platform }}
           path: dist/*.zip
@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           pattern: zip-*
           path: dist
