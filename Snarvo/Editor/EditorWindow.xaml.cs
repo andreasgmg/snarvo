@@ -264,7 +264,9 @@ public sealed partial class EditorWindow : Window
     /// <summary>In narrow windows the action buttons drop their labels; tooltips still name them.</summary>
     void UpdateCompactToolbar(double width)
     {
-        var visibility = width < 1440 ? Visibility.Collapsed : Visibility.Visible;
+        // The text tools show more style controls on the left, so the labels need a wider window.
+        double needed = FontPanel.Visibility == Visibility.Visible ? 1380 : 1180;
+        var visibility = width < needed ? Visibility.Collapsed : Visibility.Visible;
         foreach (var child in ActionBar.Children)
         {
             var content = child switch
@@ -273,7 +275,7 @@ public sealed partial class EditorWindow : Window
                 Border border => border.Child,
                 _ => null,
             };
-            if (content is StackPanel panel)
+            if (content is StackPanel panel && child != CopyButton)
                 foreach (var label in panel.Children.OfType<TextBlock>())
                     label.Visibility = visibility;
         }
@@ -308,6 +310,7 @@ public sealed partial class EditorWindow : Window
         LabelToggle.Visibility = ToVisibility(hasStyle && kind == Tool.Text);
         FontLabel.Text = kind == Tool.Step ? "Storlek" : "Textstorlek";
         AutoTrimButton.Visibility = ToVisibility(_selected is null && kind == Tool.Crop);
+        if (Root.ActualWidth > 0) UpdateCompactToolbar(Root.ActualWidth);
         if (style is null) return;
 
         var color = _selected?.Color ?? style.Color;
@@ -1512,8 +1515,8 @@ public sealed partial class EditorWindow : Window
     {
         var size = CurrentExportSize;
         var scaled = Vector2.Round(Renderer.FinalSize(_doc) * size.ScaleFor(Renderer.FinalSize(_doc).X));
-        ExportSizeLabel.Text = size == ExportSize.Original ? "100 %" : size.Label().Replace(" bred", "");
-        ToolTipService.SetToolTip(ExportSizeButton,
+        ExportSizeMenu.Text = $"Storlek: {(size == ExportSize.Original ? "100 %" : size.Label().Replace(" bred", ""))}";
+        ToolTipService.SetToolTip(ExportSizeMenu,
             $"Storlek när bilden kopieras, exporteras eller dras ut: {size.Label()} ({scaled.X:0} × {scaled.Y:0} px)");
         foreach (var item in ExportSizeMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Text == size.Label();

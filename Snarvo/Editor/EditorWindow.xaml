@@ -132,19 +132,24 @@
                         </MenuFlyout>
                     </SplitButton.Flyout>
                 </SplitButton>
-                <Button Click="Simplify_Click" AutomationProperties.Name="Förenkla"
-                        ToolTipService.ToolTip="Byt ut texten i bilden mot grå block, så att det viktiga syns. Ta bort enskilda block för att visa den texten igen.">
+                <DropDownButton AutomationProperties.Name="Mer" ToolTipService.ToolTip="Förenkla bilden eller läs ut texten i den">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE700;" FontSize="16" />
-                        <TextBlock Text="Förenkla" />
+                        <FontIcon Glyph="&#xE712;" FontSize="16" />
+                        <TextBlock Text="Mer" />
                     </StackPanel>
-                </Button>
-                <Button Click="Ocr_Click" AutomationProperties.Name="Text i bilden" ToolTipService.ToolTip="Läs ut texten i bilden (OCR)">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8C1;" FontSize="16" />
-                        <TextBlock Text="Text" />
-                    </StackPanel>
-                </Button>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyoutItem Text="Förenkla" Click="Simplify_Click"
+                                            ToolTipService.ToolTip="Byt ut texten i bilden mot grå block, så att det viktiga syns. Ta bort enskilda block för att visa den texten igen.">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE700;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Läs ut texten i bilden" Click="Ocr_Click"
+                                            ToolTipService.ToolTip="Kopiera texten som står i bilden (OCR)">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C1;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
 
                 <Border Width="1" Margin="6,4" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
@@ -159,13 +164,21 @@
                         <TextBlock Text="Dra ut" />
                     </StackPanel>
                 </Border>
-                <DropDownButton AutomationProperties.Name="Dela" ToolTipService.ToolTip="Spara i en vald mapp (t.ex. OneDrive) eller kopiera som fil">
+                <DropDownButton AutomationProperties.Name="Spara och dela" ToolTipService.ToolTip="Spara, exportera, spara i en vald mapp eller kopiera som fil">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE72D;" FontSize="16" />
                         <TextBlock Text="Dela" />
                     </StackPanel>
                     <DropDownButton.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Spara i biblioteket" Click="Save_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74E;" /></MenuFlyoutItem.Icon>
+                                <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Exportera som fil …" Click="Export_Click">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE792;" /></MenuFlyoutItem.Icon>
+                                <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+Shift+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
+                            </MenuFlyoutItem>
                             <MenuFlyoutItem x:Name="QuickSaveItem" Text="Spara i mapp …" Click="QuickSave_Click">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8F4;" /></MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
@@ -178,6 +191,9 @@
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74E;" /></MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
                             <MenuFlyoutSeparator />
+                            <MenuFlyoutSubItem x:Name="ExportSizeMenu" Text="Storlek: 100 %">
+                                <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE740;" /></MenuFlyoutSubItem.Icon>
+                            </MenuFlyoutSubItem>
                             <ToggleMenuFlyoutItem x:Name="CopyOnCloseItem" Text="Kopiera bilden när editorn stängs" Click="CopyOnClose_Click"
                                                   ToolTipService.ToolTip="Rita, stäng och klistra in – utan Ctrl+C" />
                             <MenuFlyoutSeparator />
@@ -190,24 +206,11 @@
                         </MenuFlyout>
                     </DropDownButton.Flyout>
                 </DropDownButton>
-                <!-- Label as direct content so the compact toolbar never hides it -->
-                <DropDownButton x:Name="ExportSizeButton" AutomationProperties.Name="Storlek vid delning" MinWidth="70">
-                    <TextBlock x:Name="ExportSizeLabel" Text="100 %" />
-                    <DropDownButton.Flyout>
-                        <MenuFlyout x:Name="ExportSizeMenu" Placement="BottomEdgeAlignedRight" />
-                    </DropDownButton.Flyout>
-                </DropDownButton>
-                <Button Click="Copy_Click" AutomationProperties.Name="Kopiera" Style="{StaticResource AccentButtonStyle}" ToolTipService.ToolTip="Kopiera bilden (Ctrl+C)">
+                <Button x:Name="CopyButton" Click="Copy_Click" AutomationProperties.Name="Kopiera" Style="{StaticResource AccentButtonStyle}" ToolTipService.ToolTip="Kopiera bilden (Ctrl+C)">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8C8;" FontSize="16" />
                         <TextBlock Text="Kopiera" />
                     </StackPanel>
-                </Button>
-                <Button Click="Save_Click" AutomationProperties.Name="Spara" ToolTipService.ToolTip="Spara i biblioteket (Ctrl+S)">
-                    <FontIcon Glyph="&#xE74E;" FontSize="16" />
-                </Button>
-                <Button Click="Export_Click" AutomationProperties.Name="Exportera" ToolTipService.ToolTip="Exportera som fil (Ctrl+Shift+S)">
-                    <FontIcon Glyph="&#xE792;" FontSize="16" />
                 </Button>
                 <Button Click="Library_Click" AutomationProperties.Name="Bibliotek" ToolTipService.ToolTip="Öppna biblioteket">
                     <FontIcon Glyph="&#xE8F1;" FontSize="16" />
